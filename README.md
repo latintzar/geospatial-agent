@@ -1,8 +1,10 @@
 # Geospatial Agent
 
+An AI agent for querying and exploring maps through chat
+
 Geospatial Agent is a map and chat workspace for exploring location questions alongside geographic layers and the tools that produce them.
 
-![Geospatial Agent example](https://atelierneyra.com/assets/product-motion-v3/geospatial-agent.jpg)
+![Geospatial Agent](https://atelierneyra.com/assets/product-motion-v3/geospatial-agent.jpg)
 
 [Open demo](https://preview.atelierneyra.com/apps/geospatial-agent/) · [Project website](https://atelierneyra.com/geospatial-agent/) · [Documentation](https://docs.atelierneyra.com/geospatial-agent/overview/) · [GitHub](https://github.com/latintzar/geospatial-agent)
 
