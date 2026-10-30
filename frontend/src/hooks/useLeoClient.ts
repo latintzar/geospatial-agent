@@ -1,4 +1,5 @@
 'use client';
+import exampleResults from '@/lib/example-results.json';
 
 import { useState, useCallback, useRef } from 'react';
 import type { 
@@ -354,6 +355,17 @@ export const useLeoClient = (): UseLeoClientReturn => {
     };
     setMessages(prev => [...prev, userMessage]);
     
+    // Public example: a retained result from the actual scorer on generated features.
+    if (process.env.NEXT_PUBLIC_EXAMPLE_MODE === 'true') {
+      const supported = /similar|retail|covent|location|example/i.test(text);
+      if (supported) {
+        setMapLayers([{ id: 'synthetic-retail', name: 'Synthetic similarity results', type: 'h3', data: exampleResults.similar_hexes, color: '#34d399', visible: true, metadata: { source: 'Generated example features; Leo scorer' } }]);
+        setViewState({ longitude: -0.105, latitude: 51.515, zoom: 12, pitch: 0, bearing: 0, transitionDuration: 1800 });
+      }
+      setMessages(prev => [...prev, { id: `example-${Date.now()}`, role: 'assistant', content: supported ? 'Example result: the Leo scorer compared 90 generated H3 feature records with a Covent Garden reference. The map shows 30 matches beyond the surrounding 15-ring neighbourhood. Feature values are synthetic; this is a retained computation, and no model was called.' : 'Try the supported example: “Find locations similar to Covent Garden.” It displays a retained scorer result using synthetic features.', timestamp: new Date() }]);
+      return;
+    }
+
     // Reset streaming state
     setIsThinking(true);
     setCurrentMessage('');

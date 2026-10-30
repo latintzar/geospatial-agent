@@ -2,28 +2,17 @@
 
 import React, { useCallback, useRef, memo, useState } from 'react';
 import DeckGL from '@deck.gl/react';
-import { Map, NavigationControl, ScaleControl } from 'react-map-gl/mapbox';
+import { Map, NavigationControl, ScaleControl } from 'react-map-gl/maplibre';
 import type { AgentLayer, AreaCluster } from '@/lib/types';
 import type { MapViewState } from '@deck.gl/core';
 import { useLayerFactory } from '@/hooks/useLayerFactory';
 import { useCameraControl } from '@/hooks/useCameraControl';
-import 'mapbox-gl/dist/mapbox-gl.css';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import type { Map as MapLibreMap, StyleSpecification } from 'maplibre-gl';
 
 // =============================================================================
 // CONFIGURATION
 // =============================================================================
-
-const FOG_CONFIG = {
-  range: [0.5, 10] as [number, number],
-  color: '#242B4B',
-  'high-color': '#161B33',
-  'horizon-blend': 0.2,
-};
-
-const TERRAIN_CONFIG = {
-  source: 'mapbox-dem',
-  exaggeration: 1.5,
-};
 
 // =============================================================================
 // TYPES
@@ -41,7 +30,7 @@ interface DeckGLMapProps {
   };
   onViewStateChange: (vs: { longitude: number; latitude: number; zoom: number; pitch: number; bearing: number }) => void;
   onHover: (info: { x: number; y: number; object?: Record<string, unknown>; layerId?: string }) => void;
-  mapStyle: string;
+  mapStyle: StyleSpecification;
   mapboxToken: string;
   focusGeometry?: GeoJSON.Geometry | null;
   hoveredCluster?: AreaCluster | null;
@@ -59,12 +48,11 @@ function DeckGLMapInner({
   onViewStateChange,
   onHover,
   mapStyle,
-  mapboxToken,
   focusGeometry,
   onMapClick,
   clickMode = false,
 }: DeckGLMapProps) {
-  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const mapRef = useRef<MapLibreMap | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
   // ==========================================================================
@@ -125,17 +113,6 @@ function DeckGLMapInner({
 
     console.log('[DeckGLMap] Map loaded - ready for camera commands');
 
-    if (!map.getSource('mapbox-dem')) {
-      map.addSource('mapbox-dem', {
-        type: 'raster-dem',
-        url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        tileSize: 512,
-        maxzoom: 14,
-      });
-    }
-    map.setTerrain(TERRAIN_CONFIG);
-    map.setFog(FOG_CONFIG);
-    
     // Mark map as ready for camera transitions
     setMapReady(true);
   }, []);
@@ -157,10 +134,7 @@ function DeckGLMapInner({
       <Map
         ref={(ref) => { mapRef.current = ref?.getMap() || null; }}
         mapStyle={mapStyle}
-        mapboxAccessToken={mapboxToken}
-        attributionControl={true}
         onLoad={handleMapLoad}
-        projection={{ name: 'globe' }}
       >
         <NavigationControl position="top-right" />
         <ScaleControl position="bottom-right" />

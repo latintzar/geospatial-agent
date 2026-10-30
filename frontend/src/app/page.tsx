@@ -160,7 +160,7 @@ export default function LeoPage() {
       {/* Header */}
       <header className="h-12 px-5 flex items-center justify-between border-b border-stone-800/50 bg-background z-10">
         <a 
-          href="https://leo.casa" 
+          href="https://atelierneyra.com" 
           target="_blank" 
           rel="noopener noreferrer"
           className="font-serif text-lg font-medium tracking-tight text-white hover:text-stone-300 transition-colors"
@@ -180,8 +180,9 @@ export default function LeoPage() {
               }`}
             >
               <Database className="w-3.5 h-3.5" />
-              <span>Cascade</span>
+              <span>Example results</span>
             </button>
+            {process.env.NEXT_PUBLIC_EXAMPLE_MODE !== 'true' && (
             <button
               onClick={() => setSearchMode('diem')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs transition-all ${
@@ -191,8 +192,9 @@ export default function LeoPage() {
               }`}
             >
               <Globe className="w-3.5 h-3.5" />
-              <span>DIEM</span>
+              <span>Location search</span>
             </button>
+            )}
           </div>
 
           {/* Status Message - Shows current processing step */}
@@ -236,9 +238,10 @@ export default function LeoPage() {
       </header>
 
       {/* Main Content */}
+      <div className="px-4 py-2 text-xs text-emerald-200 bg-emerald-950">Authored example · synthetic features · retained scorer result · no model call</div>
       <main className="flex-1 flex overflow-hidden">
         {/* Left Panel - switches based on mode */}
-        <div className="w-[400px] flex-shrink-0 border-r border-stone-800/50">
+        <div className="w-[45%] sm:w-[400px] flex-shrink-0 border-r border-stone-800/50">
           {searchMode === 'cascade' ? (
             <ChatPanel
               messages={messages}
@@ -312,9 +315,9 @@ export default function LeoPage() {
         <div className="flex items-center gap-3">
           <span className={`flex items-center gap-1 ${isThinking ? 'text-purple-400' : ''}`}>
             {isThinking && <span className="w-1 h-1 bg-purple-400 rounded-full animate-pulse" />}
-            SSE Streaming
+            {process.env.NEXT_PUBLIC_EXAMPLE_MODE === 'true' ? 'Retained example' : 'SSE Streaming'}
           </span>
-          <span className="text-stone-700">{API_URL}</span>
+          {process.env.NEXT_PUBLIC_EXAMPLE_MODE !== 'true' && <span className="text-stone-700">{API_URL}</span>}
         </div>
       </footer>
     </div>

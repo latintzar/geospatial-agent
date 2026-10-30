@@ -457,26 +457,26 @@ export default function ChatPanel({
               </div>
               <h2 className="text-xl font-semibold text-white mb-2">Welcome to Leo</h2>
               <p className="text-gray-500 text-sm mb-6">
-                Ask me about locations, markets, supply chains, or risks. I&apos;ll analyze data and visualize it on the map.
+                Explore an authored example using the Leo scorer and synthetic location features.
               </p>
               <div className="space-y-2 text-sm">
                 <button 
-                  onClick={() => onSendMessage("What's the population density in central Tokyo?")}
+                  onClick={() => onSendMessage("Find locations similar to Covent Garden")}
                   className="w-full px-4 py-2.5 bg-[#141414] hover:bg-[#1a1a1a] border border-gray-800/50 rounded-xl text-gray-400 hover:text-white text-left transition-colors"
                 >
-                  &quot;What&apos;s the population density in central Tokyo?&quot;
+                  &quot;Find locations similar to Covent Garden&quot;
                 </button>
                 <button 
-                  onClick={() => onSendMessage("Show cocoa production in Ghana")}
+                  onClick={() => onSendMessage("Show synthetic retail location matches")}
                   className="w-full px-4 py-2.5 bg-[#141414] hover:bg-[#1a1a1a] border border-gray-800/50 rounded-xl text-gray-400 hover:text-white text-left transition-colors"
                 >
-                  &quot;Show cocoa production in Ghana&quot;
+                  &quot;Show synthetic retail location matches&quot;
                 </button>
                 <button 
-                  onClick={() => onSendMessage("Find high-income areas in Mexico City")}
+                  onClick={() => onSendMessage("Explain the synthetic location example")}
                   className="w-full px-4 py-2.5 bg-[#141414] hover:bg-[#1a1a1a] border border-gray-800/50 rounded-xl text-gray-400 hover:text-white text-left transition-colors"
                 >
-                  &quot;Find high-income areas in Mexico City&quot;
+                  &quot;Explain the synthetic location example&quot;
                 </button>
               </div>
             </div>
@@ -630,16 +630,16 @@ export default function ChatPanel({
           {messages.length === 0 && (
             <div className="flex flex-wrap gap-2 mb-3">
               <button
-                onClick={() => onSendMessage("bohemian area with cafes near a hospital")}
+                onClick={() => onSendMessage("Find locations similar to Covent Garden")}
                 className="px-3 py-1.5 text-xs bg-stone-800/50 border border-stone-700/50 text-stone-400 rounded-lg hover:bg-stone-700/50 hover:text-white hover:border-stone-600 transition-all"
               >
-                🎨 bohemian area with cafes near a hospital
+                🎨 Find locations similar to Covent Garden
               </button>
               <button
-                onClick={() => onSendMessage("areas with high park scores and restaurants")}
+                onClick={() => onSendMessage("Show synthetic retail location matches")}
                 className="px-3 py-1.5 text-xs bg-stone-800/50 border border-stone-700/50 text-stone-400 rounded-lg hover:bg-stone-700/50 hover:text-white hover:border-stone-600 transition-all"
               >
-                🌳 areas with high park scores and restaurants
+                🌳 Show synthetic retail location matches
               </button>
             </div>
           )}
@@ -651,7 +651,7 @@ export default function ChatPanel({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Leo anything..."
+              placeholder="Try the supported example..."
               rows={1}
               className="w-full px-4 py-3 pr-24 bg-transparent text-white placeholder-stone-600 focus:outline-none resize-none text-sm"
             />
@@ -659,6 +659,7 @@ export default function ChatPanel({
             {/* Bottom Bar with Model Selector and Send */}
             <div className="flex items-center justify-between px-3 pb-2">
               {/* Model Selector */}
+              {process.env.NEXT_PUBLIC_EXAMPLE_MODE !== 'true' ? (
               <select
                 value={selectedModel}
                 onChange={(e) => onSelectModel?.(e.target.value as ModelId)}
@@ -668,6 +669,7 @@ export default function ChatPanel({
                 <option value="gemini-3-flash-preview">Gemini 3 Flash</option>
                 <option value="gemini-3-pro-preview">Gemini 3 Pro</option>
               </select>
+              ) : <span className="text-xs text-stone-500">Retained example</span>}
               
               {/* Send Button - Cursor style */}
               <button

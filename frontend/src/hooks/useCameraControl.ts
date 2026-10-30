@@ -156,7 +156,7 @@ export function useCameraControl(
     duration?: number
   ) => {
     isAnimatingRef.current = true;
-    lastFlyToRef.current = { lat: target.lat, lng: target.lng };
+    lastFlyToRef.current = { lat: target.lat, lng: target.lng, zoom: target.zoom ?? internalViewState.zoom };
     
     setInternalViewState(prev => ({
       ...prev,
@@ -169,7 +169,7 @@ export function useCameraControl(
     setTimeout(() => {
       isAnimatingRef.current = false;
     }, (duration ?? defaultTransition) + 100);
-  }, [defaultTransition]);
+  }, [defaultTransition, internalViewState.zoom]);
 
   const setPitch = useCallback((pitch: number, duration?: number) => {
     setInternalViewState(prev => ({

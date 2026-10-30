@@ -12,7 +12,7 @@ import { useVoronoiHover } from '@/hooks/useVoronoiHover';
 // =============================================================================
 
 const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || ' '.trim();
-const MAP_STYLE = 'mapbox://styles/mapbox/dark-v11';
+const MAP_STYLE = { version: 8 as const, sources: { osm: { type: 'raster' as const, tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' } }, layers: [{ id: 'osm', type: 'raster' as const, source: 'osm' }] };
 const DEFAULT_PITCH = 45;
 const DEFAULT_BEARING = -10;
 const FLIGHT_DURATION = 2000;
@@ -75,7 +75,7 @@ export default function MapPanel({
   onMapClick,
   clickMode = false,
 }: MapPanelProps) {
-  const [tooltipInfo, setTooltipInfo] = useState<TooltipInfo | null>(null);
+  const [, setTooltipInfo] = useState<TooltipInfo | null>(null);
   const [is3DMode, setIs3DMode] = useState(true);
   const [isPanelOpen, setIsPanelOpen] = useState(false);
   

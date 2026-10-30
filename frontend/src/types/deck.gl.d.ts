@@ -27,6 +27,8 @@ declare module '@deck.gl/react' {
     children?: ReactNode;
     getTooltip?: (info: any) => string | null;
     onHover?: (info: any) => void;
+    onClick?: (info: { coordinate?: [number, number] }) => void;
+    getCursor?: () => string;
   }
   
   const DeckGL: ComponentType<DeckGLProps>;
@@ -166,7 +168,10 @@ declare module '@deck.gl/geo-layers' {
       extruded?: boolean;
       elevationScale?: number;
       getHexagon?: (d: any) => string;
-      getFillColor?: (d: any) => [number, number, number, number];
+      getFillColor?: [number, number, number, number] | ((d: any) => [number, number, number, number]);
+      getLineColor?: [number, number, number, number];
+      lineWidthMinPixels?: number;
+      stroked?: boolean;
       getElevation?: (d: any) => number;
       opacity?: number;
       coverage?: number;
