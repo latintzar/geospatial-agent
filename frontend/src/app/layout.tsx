@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} ${playfair.variable} font-sans antialiased`}>
+        <Script src="https://atelierneyra.com/assets/native-nav/atelier-nav.js" data-project="geospatial-agent" strategy="afterInteractive" />
         {children}
       </body>
     </html>

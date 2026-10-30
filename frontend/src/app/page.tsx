@@ -156,7 +156,7 @@ export default function LeoPage() {
   // RENDER
   // ==========================================================================
   return (
-    <div className="h-screen w-screen flex flex-col bg-background overflow-hidden">
+    <div className="w-screen flex flex-col bg-background overflow-hidden" style={{ height: "calc(100vh - var(--atelier-nav-height, 0px))" }}>
       {/* Header */}
       <header className="h-12 px-5 flex items-center justify-between border-b border-stone-800/50 bg-background z-10">
         <a 
