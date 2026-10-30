@@ -1,0 +1,38 @@
+[
+  {
+    "task_name": "Phase 1: DuckDB Hex Fill",
+    "start_time": "2025-12-22T17:09:11.352536",
+    "end_time": "2025-12-22T17:13:56.489310",
+    "duration_s": 285.13676381111145,
+    "ram_start_gb": 0.023235321044921875,
+    "ram_end_gb": 0.015522003173828125,
+    "ram_peak_gb": 0.02388763427734375,
+    "cpu_avg_percent": 0.2051146384479718,
+    "success": true,
+    "error": ""
+  },
+  {
+    "task_name": "Phase 3a: Aggregate to Resolution 5",
+    "start_time": "2025-12-22T17:14:16.978333",
+    "end_time": "2025-12-22T17:14:18.010491",
+    "duration_s": 1.0319690704345703,
+    "ram_start_gb": 0.016361236572265625,
+    "ram_end_gb": 0.01644134521484375,
+    "ram_peak_gb": 0.01648712158203125,
+    "cpu_avg_percent": 1.0333333333333334,
+    "success": true,
+    "error": ""
+  },
+  {
+    "task_name": "Phase 3b: Merge All Chunks",
+    "start_time": "2025-12-22T17:14:18.012049",
+    "end_time": "2025-12-22T17:14:19.707498",
+    "duration_s": 1.6954090595245361,
+    "ram_start_gb": 0.01644134521484375,
+    "ram_end_gb": 0.01706695556640625,
+    "ram_peak_gb": 0.016658782958984375,
+    "cpu_avg_percent": 0.6,
+    "success": true,
+    "error": ""
+  }
+]

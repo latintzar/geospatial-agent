@@ -1,0 +1,38 @@
+[
+  {
+    "task_name": "Phase 1: DuckDB Hex Fill",
+    "start_time": "2025-12-22T14:45:35.837606",
+    "end_time": "2025-12-22T14:54:24.823376",
+    "duration_s": 528.985757112503,
+    "ram_start_gb": 0.022747039794921875,
+    "ram_end_gb": 0.011898040771484375,
+    "ram_peak_gb": 0.0232696533203125,
+    "cpu_avg_percent": 0.18932316491897044,
+    "success": true,
+    "error": ""
+  },
+  {
+    "task_name": "Phase 3a: Aggregate to Resolution 5",
+    "start_time": "2025-12-22T15:31:05.788904",
+    "end_time": "2025-12-22T15:31:10.552101",
+    "duration_s": 4.758721113204956,
+    "ram_start_gb": 0.9924850463867188,
+    "ram_end_gb": 0.9927940368652344,
+    "ram_peak_gb": 0.9928398132324219,
+    "cpu_avg_percent": 2.9,
+    "success": true,
+    "error": ""
+  },
+  {
+    "task_name": "Phase 3b: Merge All Chunks",
+    "start_time": "2025-12-22T15:31:10.559279",
+    "end_time": "2025-12-22T15:31:17.765339",
+    "duration_s": 7.205875873565674,
+    "ram_start_gb": 0.9927940368652344,
+    "ram_end_gb": 0.992767333984375,
+    "ram_peak_gb": 0.9928092956542969,
+    "cpu_avg_percent": 1.5599999999999998,
+    "success": false,
+    "error": "Command '['duckdb', '-c', \"\\n    COPY (\\n        SELECT * FROM read_parquet('/Users/peterneyra/puedo_casa/Leo/output/earth_matrix_temp/matrix/*_res10.parquet')\\n        ORDER BY h3_index\\n    ) TO '/Users/peterneyra/puedo_casa/Leo/output/earth_matrix/earth_matrix_maxed_res10.parquet' (FORMAT PARQUET, COMPRESSION ZSTD);\\n    \"]' returned non-zero exit status 1."
+  }
+]

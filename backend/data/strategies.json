@@ -1,0 +1,687 @@
+{
+  "version": "2.0.0",
+  "description": "Matrix-Centric Geospatial Playbooks - Strategic analysis patterns leveraging the Earth Matrix as infrastructure at every stage",
+  "last_updated": "2024-12-19",
+  "key_insight": "The Matrix is not just output - it's infrastructure. Use it to DEFINE vibes, FILTER candidates, CROSS-REFERENCE zones, and RANK results.",
+  "strategies": [
+    {
+      "id": "blank_street_protocol",
+      "name": "The Blank Street Protocol",
+      "category": "Chain Expansion / Site Selection",
+      "context": "Replicate the DNA of a chain's BEST-PERFORMING locations in a new market. User provides ONE Google Maps link to an existing location, we extract the chain's winning formula and find matching sites.",
+      "requires_user_input": true,
+      "user_inputs": [
+        {
+          "input": "google_maps_link",
+          "description": "Link to ONE existing location of the chain (e.g., https://maps.google.com/?cid=...)",
+          "required": true
+        },
+        {
+          "input": "target_area",
+          "description": "Where to search for new locations (city, neighborhood, or 'anywhere')",
+          "required": false,
+          "ask_if_missing": true
+        }
+      ],
+      "tools": [
+        {
+          "tool": "tool_parse_google_maps_link",
+          "purpose": "Extract business name and website domain from Google Maps URL"
+        },
+        {
+          "tool": "tool_search_entities",
+          "purpose": "Find ALL locations of the chain (source=google, PAID)",
+          "note": "Search by business name + domain to find all chain locations"
+        },
+        {
+          "tool": "tool_query_matrix",
+          "purpose": "Extract DNA of best-performing locations (their hex + neighbors)"
+        },
+        {
+          "tool": "tool_neighborhood_query",
+          "purpose": "Get neighborhood context around each successful location"
+        },
+        {
+          "tool": "tool_fetch_news",
+          "purpose": "Check GDELT for relevant mentions in candidate areas"
+        },
+        {
+          "tool": "tool_search_entities",
+          "purpose": "Find 'digital ghosts' (closed businesses) using 6+ month old review trick"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Get User Input",
+          "description": "Ask user for: (1) Google Maps link to ONE existing location, (2) Target area for expansion (optional)",
+          "agent_says": "Please share a Google Maps link to one of your existing locations. Also, where are you looking to expand? (city/neighborhood, or say 'show me everywhere')",
+          "success_criteria": "Have Google Maps URL"
+        },
+        {
+          "step": 2,
+          "action": "Parse Google Maps Link",
+          "description": "Extract business name and website domain from the Google Maps URL. This identifies the chain.",
+          "success_criteria": "Have chain name and domain (e.g., 'Blank Street Coffee', 'blankstreet.com')"
+        },
+        {
+          "step": 3,
+          "action": "Find All Chain Locations",
+          "description": "Use tool_search_entities(source=google, query=chain_name) to find ALL existing locations of this chain",
+          "success_criteria": "List of all chain locations with ratings and review counts"
+        },
+        {
+          "step": 4,
+          "action": "Filter Best Performers",
+          "description": "Sort locations by: (1) rating, (2) number of reviews. Top performers = high rating + high review count",
+          "success_criteria": "Identified top 5-10 best-performing locations"
+        },
+        {
+          "step": 5,
+          "action": "Extract Location DNA (Matrix)",
+          "description": "For each best performer, query Matrix for the hex + 5-ring neighborhood. Capture: score_transit, building_density, wealth_index, cafe_count, restaurant_count, has_commercial, etc.",
+          "success_criteria": "DNA profile: the common attributes of successful locations"
+        },
+        {
+          "step": 6,
+          "action": "Build DNA Filter",
+          "description": "Create Matrix filter from the DNA (e.g., avg score_transit of winners ± 1, similar density range)",
+          "success_criteria": "Matrix filter query ready"
+        },
+        {
+          "step": 7,
+          "action": "Search for DNA Matches",
+          "description": "Query Matrix in target area (or everywhere if not specified) for hexes matching the DNA",
+          "decision_point": true,
+          "if_area_unclear": "Show all hits on map and ask user: 'I found X matching areas. Which region interests you?'",
+          "success_criteria": "Candidate hexes that match the winning DNA"
+        },
+        {
+          "step": 8,
+          "action": "Check GDELT for Area Intel",
+          "description": "Use tool_fetch_news to check candidate areas for: new developments, foot traffic mentions, commercial activity, any red flags",
+          "success_criteria": "News context for top candidate areas"
+        },
+        {
+          "step": 9,
+          "action": "User Decision Point",
+          "description": "Show results and ask user: 'I found these areas matching your DNA. Would you like to: (A) Dive deeper into any specific area, or (B) Check for available commercial spaces?'",
+          "agent_says": "Here are areas that match your successful locations' DNA. Want me to (A) analyze any specific area deeper, or (B) find potentially available spaces?",
+          "decision_point": true,
+          "success_criteria": "User choice captured"
+        },
+        {
+          "step": 10,
+          "action": "Find Available Spaces (if requested)",
+          "description": "Use the '6+ month old review' trick: search for businesses in candidate areas, filter for those whose most recent review is >6 months old - these may be closed/available",
+          "tool_params": {
+            "source": "google",
+            "filter": "last_review_date < 6_months_ago",
+            "categories": ["cafe", "restaurant", "retail"]
+          },
+          "success_criteria": "List of potentially available commercial spaces"
+        },
+        {
+          "step": 11,
+          "action": "Deliver Final Spots",
+          "description": "Present the final list of spots: matching DNA, good news signals, potentially available spaces",
+          "success_criteria": "Actionable location list with addresses"
+        }
+      ],
+      "dna_attributes": {
+        "description": "Matrix columns used to define a location's DNA",
+        "core": ["score_transit", "building_density", "wealth_index", "has_commercial"],
+        "category_specific": {
+          "coffee_shop": ["cafe_count", "office_count", "score_transit"],
+          "restaurant": ["restaurant_count", "bar_count", "nightlife_count"],
+          "fitness": ["gym_count", "park_count", "has_residential"],
+          "retail": ["shop_count", "score_transit", "foot_traffic_proxy"]
+        }
+      },
+      "output_format": {
+        "type": "site_recommendation",
+        "fields": ["address", "dna_match_score", "rating_potential", "news_signals", "available_spaces_nearby"]
+      },
+      "example_queries": [
+        "I want to expand my coffee chain - here's a link to one of our best stores",
+        "Find locations like our successful Brooklyn store for expansion to LA",
+        "Where should we open our next location? [Google Maps link]",
+        "Replicate our winning formula in Chicago"
+      ]
+    },
+    {
+      "id": "vibe_neighborhood_finder",
+      "name": "The Vibe Neighborhood Finder",
+      "category": "Lifestyle Location",
+      "context": "Finding neighborhoods matching a specific 'vibe' (clean beaches, hipster zones, family-friendly). Uses Matrix at every stage to define, filter, and rank.",
+      "tools": [
+        {
+          "tool": "tool_query_matrix",
+          "purpose": "Define the 'vibe' using Matrix columns"
+        },
+        {
+          "tool": "tool_fetch_geometry",
+          "purpose": "Get base geometry (coastline, parks, etc.) if needed"
+        },
+        {
+          "tool": "tool_travel_time_zone",
+          "purpose": "Create travel-time polygon from key locations"
+        },
+        {
+          "tool": "tool_matrix_geometry",
+          "purpose": "Cross-reference travel zones with Matrix attributes"
+        },
+        {
+          "tool": "tool_calculate_index",
+          "purpose": "Calculate affluence/gentrification/vitality for ranking"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Define the Vibe with Matrix",
+          "description": "Translate user's vibe into Matrix filters. Examples: 'clean beach' = score_coast > 8, bar_count < 2, building_density < 50; 'hipster' = cafe_count > 5, has_industrial = 1, gym_count > 0",
+          "success_criteria": "Vibe translated to Matrix filters"
+        },
+        {
+          "step": 2,
+          "action": "Find Anchor Locations",
+          "description": "Query Matrix to find hexes matching the vibe (e.g., beach hexes, park hexes)",
+          "success_criteria": "Anchor locations identified"
+        },
+        {
+          "step": 3,
+          "action": "Create Reachable Zone",
+          "description": "Use tool_travel_time_zone to get polygon of area reachable in X minutes by chosen mode",
+          "success_criteria": "Travel zone polygon created"
+        },
+        {
+          "step": 4,
+          "action": "Cross-Reference with Matrix (Cookie Cutter)",
+          "description": "Use tool_matrix_geometry to filter hexes INSIDE travel zone by desired attributes (e.g., wealth_index > 0.7)",
+          "success_criteria": "Filtered neighborhoods in travel zone"
+        },
+        {
+          "step": 5,
+          "action": "Rank with On-the-Fly Indices",
+          "description": "Calculate affluence, gentrification, or vitality index for final ranking",
+          "success_criteria": "Ranked neighborhood list"
+        }
+      ],
+      "vibe_examples": {
+        "clean_beach": {
+          "matrix_filters": {"score_coast": "> 8", "bar_count": "< 2", "building_density": "< 50"},
+          "description": "Near beach, not nightlife heavy, not super dense"
+        },
+        "hipster_zone": {
+          "matrix_filters": {"cafe_count": "> 5", "gym_count": "> 0", "has_industrial": "= 1"},
+          "description": "Cafes, fitness culture, converted industrial areas"
+        },
+        "family_friendly": {
+          "matrix_filters": {"score_park": "> 7", "school_count": "> 0", "bar_count": "< 3"},
+          "description": "Parks, schools, not bar-heavy"
+        },
+        "urban_professional": {
+          "matrix_filters": {"score_transit": "> 8", "restaurant_count": "> 10", "gym_count": "> 2"},
+          "description": "Transit access, dining options, fitness"
+        }
+      },
+      "output_format": {
+        "type": "neighborhood_recommendation",
+        "fields": ["neighborhood_hexes", "vibe_match_score", "travel_time_from_anchor", "affluence_index", "vitality_index"]
+      },
+      "example_queries": [
+        "Find affluent neighborhoods 20 mins by moped from clean beaches in Barcelona",
+        "Where are the hipster zones in Berlin?",
+        "Family-friendly areas within 15 min walk of parks in Amsterdam",
+        "Urban professional neighborhoods near transit in Tokyo"
+      ]
+    },
+    {
+      "id": "hedge_fund_sentinel",
+      "name": "The Hedge Fund Sentinel",
+      "category": "Commodity Risk",
+      "context": "Analyzing soft commodities for supply disruptions. Maps production clusters, overlays weather risk, monitors live news.",
+      "tools": [
+        {
+          "tool": "tool_fetch_crops",
+          "purpose": "Map production clusters using MapSPAM data"
+        },
+        {
+          "tool": "tool_fetch_weather_risk",
+          "purpose": "Overlay weather risk data"
+        },
+        {
+          "tool": "tool_fetch_news",
+          "purpose": "Monitor live news for disruption signals"
+        },
+        {
+          "tool": "tool_calculate_route",
+          "purpose": "Analyze logistics corridors"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Map Production Clusters",
+          "description": "Use tool_fetch_crops to identify major production regions",
+          "success_criteria": "Production heatmap with top regions identified"
+        },
+        {
+          "step": 2,
+          "action": "Overlay Weather Risk",
+          "description": "Use tool_fetch_weather_risk to analyze drought, flood, frost risk in production zones",
+          "success_criteria": "Risk overlay on production map"
+        },
+        {
+          "step": 3,
+          "action": "Scan Live News",
+          "description": "Use tool_fetch_news to check for: protest, flood, drought, strike near production zones",
+          "success_criteria": "Active disruption alerts identified"
+        },
+        {
+          "step": 4,
+          "action": "Assess Logistics",
+          "description": "Map export routes and check for bottlenecks",
+          "success_criteria": "Logistics risk assessment"
+        },
+        {
+          "step": 5,
+          "action": "Report Supply at Risk",
+          "description": "Calculate total tonnage/value at risk",
+          "success_criteria": "Quantified risk report"
+        }
+      ],
+      "output_format": {
+        "type": "risk_assessment",
+        "fields": ["commodity", "production_at_risk", "affected_regions", "risk_factors", "logistics_status"]
+      },
+      "example_queries": [
+        "What's the supply risk for cocoa from West Africa?",
+        "Assess coffee production vulnerability in Brazil",
+        "Monitor sugar supply chain disruptions"
+      ]
+    },
+    {
+      "id": "gentrification_hunter",
+      "name": "The Gentrification Hunter",
+      "category": "Real Estate Investment",
+      "context": "Finding undervalued neighborhoods with gentrification potential. Uses Matrix to identify low-wealth areas with emerging affluence signals.",
+      "tools": [
+        {
+          "tool": "tool_query_matrix",
+          "purpose": "Find low-wealth baseline areas"
+        },
+        {
+          "tool": "tool_neighborhood_query",
+          "purpose": "Check neighborhood for affluence signals"
+        },
+        {
+          "tool": "tool_calculate_index",
+          "purpose": "Calculate gentrification index"
+        },
+        {
+          "tool": "tool_fetch_news",
+          "purpose": "Find development signals in news"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Find Low Wealth Baseline (Matrix)",
+          "description": "Query Matrix for areas with low wealth_index (< 0.4) - these are 'undervalued'",
+          "matrix_filters": {
+            "wealth_index": "< 0.4"
+          },
+          "success_criteria": "Undervalued areas identified"
+        },
+        {
+          "step": 2,
+          "action": "Detect Affluence Signals (Neighborhood Query)",
+          "description": "Use tool_neighborhood_query to find areas where surrounding hexes have: cafe_count > 3, gym_count > 0, has_industrial = 1 (converted spaces)",
+          "success_criteria": "Areas with emerging affluence signals"
+        },
+        {
+          "step": 3,
+          "action": "Calculate Gentrification Index",
+          "description": "Use tool_calculate_index('gentrification') to score candidate areas",
+          "success_criteria": "Gentrification scores calculated"
+        },
+        {
+          "step": 4,
+          "action": "Validate with Development News",
+          "description": "Check news for permits, construction, and development announcements",
+          "success_criteria": "Development signals confirmed"
+        },
+        {
+          "step": 5,
+          "action": "Rank Investment Opportunities",
+          "description": "Gap = (Gentrification Index / Current Wealth) = Investment Opportunity",
+          "success_criteria": "Ranked opportunity list"
+        }
+      ],
+      "output_format": {
+        "type": "investment_opportunity",
+        "fields": ["neighborhood", "current_wealth", "gentrification_index", "development_signals", "opportunity_score"]
+      },
+      "example_queries": [
+        "Find gentrifying neighborhoods in Brooklyn",
+        "What areas in Austin are undervalued but improving?",
+        "Identify investment opportunities in up-and-coming Miami neighborhoods"
+      ]
+    },
+    {
+      "id": "quality_of_life_scan",
+      "name": "The Quality of Life Scan",
+      "category": "Residential/Expat",
+      "context": "Finding pleasant places to live. Uses Matrix to filter for amenities, safety proxies, and lifestyle factors.",
+      "tools": [
+        {
+          "tool": "tool_query_matrix",
+          "purpose": "Filter for amenities and lifestyle factors"
+        },
+        {
+          "tool": "tool_fetch_weather_risk",
+          "purpose": "Check climate comfort"
+        },
+        {
+          "tool": "tool_calculate_index",
+          "purpose": "Calculate vitality index for vibrancy"
+        },
+        {
+          "tool": "tool_search_entities",
+          "purpose": "Get qualitative vibe from reviews (source=google, use sparingly)"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Filter for Amenities (Matrix)",
+          "description": "Query Matrix for: score_park > 6, hospital_count > 0, supermarket_count > 0, score_transit > 5",
+          "matrix_filters": {
+            "score_park": "> 6",
+            "hospital_count": "> 0",
+            "supermarket_count": "> 0",
+            "score_transit": "> 5"
+          },
+          "success_criteria": "Amenity-rich areas identified"
+        },
+        {
+          "step": 2,
+          "action": "Check Safety Proxies (Matrix)",
+          "description": "Lower bar_count and higher residential density suggest family-friendly",
+          "matrix_filters": {
+            "has_residential": "= 1",
+            "bar_count": "< 5"
+          },
+          "success_criteria": "Safety-filtered areas"
+        },
+        {
+          "step": 3,
+          "action": "Assess Climate Comfort",
+          "description": "Use tool_fetch_weather_risk to check heat, humidity, flood risk",
+          "success_criteria": "Climate assessment complete"
+        },
+        {
+          "step": 4,
+          "action": "Calculate Vitality (Vibrancy)",
+          "description": "Use tool_calculate_index('vitality') to ensure the area isn't dead",
+          "success_criteria": "Vitality scores > 5"
+        },
+        {
+          "step": 5,
+          "action": "Read the Vibe (Optional, PAID)",
+          "description": "Only if user needs qualitative: scrape reviews of local cafes and parks",
+          "success_criteria": "Positive sentiment in reviews"
+        }
+      ],
+      "output_format": {
+        "type": "livability_report",
+        "fields": ["location", "amenity_score", "safety_proxy", "climate_score", "vitality_index", "overall_qol"]
+      },
+      "example_queries": [
+        "What's the quality of life like in Lisbon for remote workers?",
+        "Find family-friendly neighborhoods in Tokyo",
+        "Best neighborhoods in Singapore for young professionals"
+      ]
+    },
+    {
+      "id": "coastal_lifestyle_finder",
+      "name": "The Coastal Lifestyle Finder",
+      "category": "Lifestyle Location",
+      "context": "Finding the perfect coastal living spot. Demonstrates multi-stage Matrix usage: define beach quality, get coastline geometry, buffer it, cross-reference with lifestyle filters.",
+      "tools": [
+        {
+          "tool": "tool_query_matrix",
+          "purpose": "Define 'clean beach' vibe with Matrix filters"
+        },
+        {
+          "tool": "tool_fetch_geometry",
+          "purpose": "Get coastline geometry for country"
+        },
+        {
+          "tool": "tool_buffer_geometry",
+          "purpose": "Create coastal buffer zone"
+        },
+        {
+          "tool": "tool_matrix_geometry",
+          "purpose": "Filter Matrix hexes within coastal buffer"
+        },
+        {
+          "tool": "tool_travel_time_zone",
+          "purpose": "Create travel-time polygon from beach spots"
+        },
+        {
+          "tool": "tool_calculate_index",
+          "purpose": "Rank by affluence or vitality"
+        }
+      ],
+      "reasoning_chain": [
+        {
+          "step": 1,
+          "action": "Define 'Clean Beach' (Matrix Logic)",
+          "description": "Use Matrix to find beach hexes that are NOT party zones: score_coast > 8, bar_count < 2, building_density < 50, has_park = 1",
+          "matrix_filters": {
+            "score_coast": "> 8",
+            "bar_count": "< 2",
+            "building_density": "< 50",
+            "has_park": "= 1"
+          },
+          "success_criteria": "Clean beach candidate hexes identified"
+        },
+        {
+          "step": 2,
+          "action": "Get Coastline Geometry",
+          "description": "Use tool_fetch_geometry('coastline', country_code) to get coast shape",
+          "success_criteria": "Coastline geometry retrieved"
+        },
+        {
+          "step": 3,
+          "action": "Create Coastal Buffer",
+          "description": "Use tool_buffer_geometry to create 2.5km coastal zone",
+          "success_criteria": "Coastal buffer polygon created"
+        },
+        {
+          "step": 4,
+          "action": "Find Beach Anchor Points",
+          "description": "Intersect clean beach hexes with coastal buffer",
+          "success_criteria": "Beach anchor locations identified"
+        },
+        {
+          "step": 5,
+          "action": "Create Travel Zone",
+          "description": "Use tool_travel_time_zone from best beaches (20 min moped)",
+          "success_criteria": "Travel-time zone polygon"
+        },
+        {
+          "step": 6,
+          "action": "Cross-Reference with Affluence (Matrix Again!)",
+          "description": "Use tool_matrix_geometry on travel zone with wealth_index > 0.7, has_residential = 1",
+          "matrix_filters": {
+            "wealth_index": "> 0.7",
+            "has_residential": "= 1"
+          },
+          "success_criteria": "Affluent residential areas near beaches"
+        },
+        {
+          "step": 7,
+          "action": "Rank by Lifestyle Index",
+          "description": "Use tool_calculate_index('vitality') or 'affluence' to rank",
+          "success_criteria": "Final ranked list"
+        }
+      ],
+      "output_format": {
+        "type": "coastal_lifestyle_recommendation",
+        "fields": ["neighborhood", "beach_quality_score", "travel_time_to_beach", "affluence_index", "vitality_index"]
+      },
+      "example_queries": [
+        "Find affluent neighborhoods 20 mins by moped from clean beaches in Barcelona",
+        "Best coastal living spots near Lisbon that aren't party zones",
+        "Quiet beach neighborhoods within cycling distance in Valencia",
+        "Family-friendly coastal areas in the French Riviera"
+      ]
+    }
+  ],
+  "tool_reference": {
+    "matrix_tools": {
+      "description": "Earth Matrix - Pre-computed H3 Feature Store (150+ columns). Use at EVERY stage.",
+      "tools": {
+        "tool_query_matrix": "Filter hexes by attributes → Heatmap",
+        "tool_matrix_geometry": "Filter hexes by shape + attributes → Heatmap (Cookie Cutter)",
+        "tool_neighborhood_query": "On-the-fly neighborhood aggregation",
+        "tool_calculate_index": "On-the-fly indices: affluence, gentrification, vitality"
+      },
+      "key_columns": {
+        "wealth": ["wealth_index"],
+        "density": ["building_density", "pop_density", "urban_volume"],
+        "proximity": ["score_coast", "score_park", "score_transit", "score_hospital", "score_school"],
+        "poi_counts": ["cafe_count", "bar_count", "restaurant_count", "gym_count", "hotel_count", "supermarket_count"],
+        "land_use": ["has_park", "has_forest", "has_residential", "has_commercial", "has_industrial"],
+        "water": ["has_coast", "has_lake", "has_river"]
+      }
+    },
+    "geometry_tools": {
+      "description": "Cookie Cutter - Filter by ANY shape (coastlines, rivers, travel zones)",
+      "tools": {
+        "tool_fetch_geometry": "Get any geometry: coastline, river, park, road, railway, boundary",
+        "tool_buffer_geometry": "Create buffer around geometry",
+        "tool_travel_time_zone": "Approximate travel-time polygon (walking, cycling, moped, driving)"
+      }
+    },
+    "entity_tools": {
+      "description": "Entity Engine - Find specific objects (POIs, buildings)",
+      "tools": {
+        "tool_search_entities": "Unified search: source=athena (FREE), source=google (PAID), source=news, source=hdx",
+        "tool_filter_by_geometry": "Filter entities by shape (Cookie Cutter for entities)"
+      }
+    },
+    "data_tools": {
+      "description": "Specialized data sources",
+      "tools": {
+        "tool_get_population": "WorldPop population density",
+        "tool_fetch_crops": "MapSPAM agricultural production",
+        "tool_fetch_wealth": "Relative Wealth Index",
+        "tool_fetch_weather_risk": "Climate and weather risk",
+        "tool_fetch_news": "GDELT news and events",
+        "tool_calculate_route": "OSRM routing"
+      }
+    }
+  },
+  "signal_theory": {
+    "description": "What POI patterns reveal about an area - use this to CREATIVELY interpret any vibe",
+    "poi_signals": {
+      "cafe_count": {"high": "Creative class, remote workers, educated", "low": "Traditional, residential, working class"},
+      "gym_count": {"high": "Health-conscious, affluent, young professionals", "low": "Working class, elderly, budget-conscious"},
+      "bar_count": {"high": "Nightlife, young adults, party scene", "low": "Family-oriented, conservative, quiet"},
+      "hotel_count": {"high": "Tourist district, business travelers", "low": "Local residential, authentic"},
+      "bank_count": {"high": "Commercial hub, business district", "low": "Purely residential"},
+      "convenience_count": {"high": "Working class, transient, budget", "low": "Affluent, established"},
+      "restaurant_count": {"high": "Vibrant dining, social scene", "low": "Sleepy, residential, suburban"},
+      "museum_count": {"high": "Cultural, educated, tourists", "low": "Commercial, industrial"},
+      "school_count": {"high": "Families, established, stable", "low": "Young singles, transient"},
+      "has_industrial": {"high": "Gentrifying potential, artists, startups", "low": "Established, residential"}
+    },
+    "proximity_signals": {
+      "score_transit": {"high": "Urban, connected, professionals", "low": "Suburban, car-dependent, isolated"},
+      "score_park": {"high": "Family, green, quality of life", "low": "Dense urban, commercial"},
+      "score_coast": {"high": "Beach lifestyle, tourism, expensive", "low": "Inland, working"},
+      "score_hospital": {"high": "Established infrastructure, elderly", "low": "Underserved, young"}
+    },
+    "creative_interpretation": "When a user asks for a novel vibe, THINK about what signals would indicate it. Build a custom filter. Explain your reasoning to the user."
+  },
+  "vibe_dictionary": {
+    "clean_beach": {
+      "filters": {"score_coast": "> 8", "bar_count": "< 2", "building_density": "< 50"},
+      "description": "Near beach, not nightlife heavy, not super dense",
+      "reasoning": "Beach proximity but avoiding party zones (low bars) and crowded areas (low density)"
+    },
+    "hipster_zone": {
+      "filters": {"cafe_count": "> 5", "gym_count": "> 0", "has_industrial": "= 1"},
+      "description": "Cafes, fitness culture, converted industrial areas",
+      "reasoning": "Coffee culture + health-conscious + industrial conversion = classic gentrification pattern"
+    },
+    "tech_bro_paradise": {
+      "filters": {"gym_count": "> 2", "cafe_count": "> 3", "score_transit": "> 7", "bar_count": "< 5", "has_commercial": "= 1"},
+      "description": "Fitness-focused, cafes for remote work, urban transit, not party-heavy",
+      "reasoning": "High income (gyms), productivity culture (cafes, moderate nightlife), urban connectivity"
+    },
+    "artist_colony": {
+      "filters": {"wealth_index": "< 0.5", "cafe_count": "> 2", "has_industrial": "= 1", "hotel_count": "< 2"},
+      "description": "Affordable, cultural, industrial conversion, not touristy",
+      "reasoning": "Artists need affordable rent + creative spaces + not overrun by tourists"
+    },
+    "retirement_haven": {
+      "filters": {"score_hospital": "> 6", "score_park": "> 6", "bar_count": "< 2", "building_density": "< 30"},
+      "description": "Healthcare access, green space, quiet, not dense",
+      "reasoning": "Elderly need medical access, green space for walks, peace and quiet"
+    },
+    "family_friendly": {
+      "filters": {"score_park": "> 7", "school_count": "> 0", "bar_count": "< 3"},
+      "description": "Parks, schools, not bar-heavy",
+      "reasoning": "Families need kid-friendly spaces (parks, schools) and avoid rowdy nightlife"
+    },
+    "urban_professional": {
+      "filters": {"score_transit": "> 8", "restaurant_count": "> 10", "gym_count": "> 2"},
+      "description": "Transit access, dining options, fitness",
+      "reasoning": "Young professionals want commute efficiency, social dining scene, health culture"
+    },
+    "retail_gravity": {
+      "filters": {"score_transit": "> 7", "building_density": "> 50", "cafe_count": "> 0"},
+      "description": "High foot traffic, transit access, existing retail",
+      "reasoning": "Retail needs footfall (transit), density (customers), and proven market (existing cafes)"
+    },
+    "gentrifying": {
+      "filters": {"wealth_index": "< 0.4", "cafe_count": "> 3", "gym_count": "> 0"},
+      "description": "Low wealth but emerging affluence signals",
+      "reasoning": "Investment opportunity: currently affordable but showing signs of incoming affluent residents"
+    },
+    "livable": {
+      "filters": {"score_park": "> 6", "hospital_count": "> 0", "score_transit": "> 5"},
+      "description": "Parks, healthcare, transit - basics covered",
+      "reasoning": "The essentials for daily life: green space, medical access, mobility"
+    },
+    "student_zone": {
+      "filters": {"bar_count": "> 3", "cafe_count": "> 2", "convenience_count": "> 2", "wealth_index": "< 0.5"},
+      "description": "Nightlife, coffee, cheap food, not wealthy",
+      "reasoning": "Students need affordable living, social venues, late-night study spots"
+    },
+    "luxury_enclave": {
+      "filters": {"wealth_index": "> 0.8", "hotel_count": "> 2", "restaurant_count": "> 5", "building_density": "< 40"},
+      "description": "Very wealthy, hotels, dining, not crowded",
+      "reasoning": "High-end residential: expensive, exclusive, service-rich but not dense"
+    },
+    "startup_hub": {
+      "filters": {"cafe_count": "> 5", "has_commercial": "= 1", "score_transit": "> 7", "has_industrial": "= 1"},
+      "description": "Coffee culture, commercial zoning, connected, converted spaces",
+      "reasoning": "Startups cluster where there's cheap space (industrial), connectivity, and coffee meetings"
+    }
+  },
+  "usage_notes": {
+    "matrix_first": "Start with Matrix. It's instant, free, and shapes all downstream work.",
+    "entities_on_demand": "Fetch entities only after Matrix has narrowed the search space.",
+    "live_for_validation": "Reserve paid sources (google) for final validation of top candidates.",
+    "matrix_as_infrastructure": "The Matrix is not output. It's infrastructure for every stage: define, filter, cross-reference, rank.",
+    "creative_interpretation": "The vibe_dictionary contains reference patterns. The agent should synthesize novel combinations based on signal_theory principles.",
+    "show_reasoning": "Explain the translation from user intent to signal combination. Trust is built through transparency."
+  }
+}

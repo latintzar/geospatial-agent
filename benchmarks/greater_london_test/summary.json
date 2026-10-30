@@ -1,0 +1,29 @@
+{
+  "run_name": "greater_london_test",
+  "start_time": "2025-12-22T14:45:35.837098",
+  "end_time": "2025-12-22T15:31:17.943583",
+  "total_duration_s": 2742.0896611213684,
+  "resource_summary": {
+    "sample_count": 2566,
+    "duration_s": 2741.02,
+    "cpu_avg_percent": 40.016328916601715,
+    "cpu_max_percent": 360.3,
+    "ram_avg_gb": 1.0878409976617303,
+    "ram_peak_gb": 6.77,
+    "disk_read_total_mb": 28571.36,
+    "disk_write_total_mb": 43433.27,
+    "net_recv_total_mb": 1021.81,
+    "net_sent_total_mb": 146.37
+  },
+  "s3_summary": {
+    "total_bytes": 0,
+    "total_mb": 0.0,
+    "total_gb": 0.0,
+    "total_tb": 0.0,
+    "estimated_cost_usd": 0.0,
+    "query_count": 0
+  },
+  "task_count": 3,
+  "metric_count": 5,
+  "extrapolated_global_cost_usd": 1365668.18
+}

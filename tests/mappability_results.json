@@ -1,0 +1,219 @@
+[
+  {
+    "category": "Location",
+    "query": "Where is Shibuya in Tokyo?",
+    "success": true,
+    "tools": [],
+    "layers": []
+  },
+  {
+    "category": "Location",
+    "query": "Boundary of Manhattan",
+    "success": true,
+    "tools": [],
+    "layers": []
+  },
+  {
+    "category": "Location",
+    "query": "Gyms in Miami",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Climate",
+    "query": "Flood risk Miami",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Climate",
+    "query": "Elevation of Denver",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Climate",
+    "query": "Dubai climate",
+    "success": true,
+    "tools": [
+      "boundary",
+      "weather_risk"
+    ],
+    "layers": [
+      {
+        "valid": true,
+        "layer": "boundary",
+        "type": "info_panel",
+        "errors": [],
+        "count": 1,
+        "note": "Non-spatial data (info panel)"
+      },
+      {
+        "valid": true,
+        "layer": "weather_risk",
+        "type": "info_panel",
+        "errors": [],
+        "count": 1,
+        "note": "Non-spatial data (info panel)"
+      }
+    ]
+  },
+  {
+    "category": "Population",
+    "query": "Population density Tokyo",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Population",
+    "query": "Lagos density",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Agriculture",
+    "query": "Cocoa production Ghana",
+    "success": true,
+    "tools": [],
+    "layers": []
+  },
+  {
+    "category": "Agriculture",
+    "query": "Rice Vietnam",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "HDX",
+    "query": "Hospitals Kenya",
+    "success": true,
+    "tools": [
+      "boundary",
+      "humanitarian"
+    ],
+    "layers": [
+      {
+        "valid": true,
+        "layer": "boundary",
+        "type": "info_panel",
+        "errors": [],
+        "count": 1,
+        "note": "Non-spatial data (info panel)"
+      },
+      {
+        "valid": true,
+        "layer": "humanitarian",
+        "type": "geojson:FeatureCollection",
+        "errors": [],
+        "count": 500
+      }
+    ]
+  },
+  {
+    "category": "HDX",
+    "query": "Schools Uganda",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "News",
+    "query": "Ukraine news",
+    "success": true,
+    "tools": [
+      "news"
+    ],
+    "layers": [
+      {
+        "valid": true,
+        "layer": "news",
+        "type": "geojson:FeatureCollection",
+        "errors": [],
+        "count": 250
+      }
+    ]
+  },
+  {
+    "category": "News",
+    "query": "Tesla sentiment",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Trade",
+    "query": "Ghana cocoa exports",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Trade",
+    "query": "US coffee imports",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Wealth",
+    "query": "Wealthy areas Mexico City",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Wealth",
+    "query": "Income levels Lagos",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  },
+  {
+    "category": "Routes",
+    "query": "Drive Paris to Berlin",
+    "success": true,
+    "tools": [
+      "boundary",
+      "boundary",
+      "route"
+    ],
+    "layers": [
+      {
+        "valid": true,
+        "layer": "boundary",
+        "type": "info_panel",
+        "errors": [],
+        "count": 1,
+        "note": "Non-spatial data (info panel)"
+      },
+      {
+        "valid": true,
+        "layer": "boundary",
+        "type": "info_panel",
+        "errors": [],
+        "count": 1,
+        "note": "Non-spatial data (info panel)"
+      },
+      {
+        "valid": true,
+        "layer": "route",
+        "type": "geojson:Feature",
+        "errors": [],
+        "count": 1
+      }
+    ]
+  },
+  {
+    "category": "Routes",
+    "query": "Tokyo to Osaka",
+    "success": false,
+    "error": "http_error",
+    "layers": []
+  }
+]

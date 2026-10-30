@@ -1,0 +1,72 @@
+[
+  {
+    "name": "phase1_chunks_processed",
+    "value": 1,
+    "unit": "chunks",
+    "timestamp": "2025-12-22T17:13:56.488615",
+    "phase": "hex_fill"
+  },
+  {
+    "name": "phase2_matrices_completed",
+    "value": 3,
+    "unit": "matrices",
+    "timestamp": "2025-12-22T17:14:16.977158",
+    "phase": "propagation"
+  },
+  {
+    "name": "phase2_duration_s",
+    "value": 20.486738920211792,
+    "unit": "seconds",
+    "timestamp": "2025-12-22T17:14:16.977420",
+    "phase": "propagation"
+  },
+  {
+    "name": "propagation_rate",
+    "value": 0.14643619034165864,
+    "unit": "matrices/sec",
+    "timestamp": "2025-12-22T17:14:16.977597",
+    "phase": "propagation"
+  },
+  {
+    "name": "phase3a_chunks_aggregated",
+    "value": 1,
+    "unit": "chunks",
+    "timestamp": "2025-12-22T17:14:17.994524",
+    "phase": "aggregation"
+  },
+  {
+    "name": "output_size_earth_matrix_maxed_res5",
+    "value": 0.053127288818359375,
+    "unit": "MB",
+    "timestamp": "2025-12-22T17:14:19.707029",
+    "phase": "merge"
+  },
+  {
+    "name": "output_size_earth_matrix_maxed_res10",
+    "value": 0.45061397552490234,
+    "unit": "MB",
+    "timestamp": "2025-12-22T17:14:19.707190",
+    "phase": "merge"
+  },
+  {
+    "name": "output_size_earth_matrix_maxed_res8",
+    "value": 2.141432762145996,
+    "unit": "MB",
+    "timestamp": "2025-12-22T17:14:19.707311",
+    "phase": "merge"
+  },
+  {
+    "name": "output_size_earth_matrix_maxed_res11",
+    "value": 0.6475706100463867,
+    "unit": "MB",
+    "timestamp": "2025-12-22T17:14:19.707416",
+    "phase": "merge"
+  },
+  {
+    "name": "total_output_size_mb",
+    "value": 3.2927446365356445,
+    "unit": "MB",
+    "timestamp": "2025-12-22T17:14:19.708664",
+    "phase": "complete"
+  }
+]

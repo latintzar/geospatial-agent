@@ -1,0 +1,37 @@
+[
+  {
+    "name": "phase1_chunks_processed",
+    "value": 1,
+    "unit": "chunks",
+    "timestamp": "2025-12-22T14:54:24.805827",
+    "phase": "hex_fill"
+  },
+  {
+    "name": "phase2_matrices_completed",
+    "value": 1,
+    "unit": "matrices",
+    "timestamp": "2025-12-22T15:31:05.784280",
+    "phase": "propagation"
+  },
+  {
+    "name": "phase2_duration_s",
+    "value": 2200.958619117737,
+    "unit": "seconds",
+    "timestamp": "2025-12-22T15:31:05.784614",
+    "phase": "propagation"
+  },
+  {
+    "name": "propagation_rate",
+    "value": 0.00045434747900933005,
+    "unit": "matrices/sec",
+    "timestamp": "2025-12-22T15:31:05.784917",
+    "phase": "propagation"
+  },
+  {
+    "name": "phase3a_chunks_aggregated",
+    "value": 1,
+    "unit": "chunks",
+    "timestamp": "2025-12-22T15:31:10.551197",
+    "phase": "aggregation"
+  }
+]

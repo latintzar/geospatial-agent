@@ -1,0 +1,1273 @@
+#!/usr/bin/env python3
+"""
+================================================================================
+EARTH MATRIX ETL v4.1 - Polygon Fill + Buffer Rings + Natural Features
+================================================================================
+
+This ETL builds a comprehensive H3 hexagonal grid enriched with features from
+Overture Maps using accurate spatial methods:
+
+1. **Polygon Fill**: H3 hexes are filled for each polygon, carrying polygon_id
+   so we can count distinct polygons and distribute area correctly.
+
+2. **Buffer Rings**: Travel time is calculated by creating concentric buffers
+   around polygon edges (or line features) at walk-time increments.
+
+3. **Natural Features**: Beaches, protected areas (national parks), and 
+   coastlines are processed with appropriate methods.
+
+SCHEMA OVERVIEW (~210 columns)
+==============================
+
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ FEATURE TYPE          │ COLUMNS    │ DESCRIPTION                           │
+├───────────────────────┼────────────┼───────────────────────────────────────┤
+│ H3 Index              │ 1          │ H3 hex ID at resolution 11 (~45m)     │
+│ POI Top-Level         │ 22         │ Counts by major category              │
+│ POI Specific          │ 35         │ Counts by detailed sub-category       │
+│ Buildings             │ 4          │ Density, height, volume, floors       │
+│ Land Use (polygon)    │ 60         │ 20 × (count + area_in_hex + avg_poly) │
+│                       │            │ Includes beach (natural:beach)        │
+│ Water (polygon)       │ 12         │ 4 × (count + area_in_hex + avg_poly)  │
+│ Protected Areas       │ 3          │ count + area_in_hex + avg_polygon_m2  │
+│                       │            │ (national parks, nature reserves)     │
+│ Infrastructure        │ 7          │ 6 types + total                       │
+│ Transportation        │ 4          │ Road, major road, rail, pedestrian    │
+│ Travel Time (polygon) │ 60         │ 10 features × 6 columns each          │
+│ Travel Time (line)    │ 1          │ walk_min_to_coastline                 │
+└─────────────────────────────────────────────────────────────────────────────┘
+
+NATURAL FEATURES (v4.1)
+=======================
+
+1. **Beaches** (natural:beach - polygon):
+   - Added to LAND_USE_CLASSES for hex fill
+   - Columns: beach_count, beach_area_in_hex_m2, beach_avg_polygon_m2
+   - Size-tiered travel time: walk_min_to_beach, walk_min_to_beach_small, etc.
+
+2. **Protected Areas** (boundary:protected_area - polygon):
+   - National parks, nature reserves, wilderness areas
+   - Processed with hex fill for accurate area distribution
+   - Columns: protected_area_count, protected_area_in_hex_m2, protected_area_avg_polygon_m2
+   - Size-tiered travel time columns included
+
+3. **Coastlines** (natural:coastline - line/way):
+   - Processed with buffer rings (not hex fill - lines don't have area)
+   - Column: walk_min_to_coastline
+   - Buffer rings create travel time zones from coastline edge
+
+KEY IMPROVEMENTS IN v4.0/4.1
+============================
+
+1. **Polygon Fill with polygon_id**:
+   - Each hex inside a polygon knows which polygon(s) it belongs to
+   - {class}_count = COUNT(DISTINCT polygon_id) - accurate even for huge parks
+   - {class}_area_in_hex_m2 = distributed area share per hex
+   - {class}_avg_polygon_m2 = average size of polygons touching this hex
+
+2. **Buffer Rings for Travel Time**:
+   - Creates concentric buffers at walk-time increments around polygon edges
+   - Also works for line features (coastlines)
+   - Each hex knows: walk_min to nearest polygon of each size tier
+   
+   Walk time zones (at 5 km/h = 83.3 m/min):
+   - Ring 0: Inside polygon → 0 min (for lines: within ~50m)
+   - Ring 1: 0-83m buffer → 1 min
+   - Ring 2: 83-250m buffer → 3 min
+   - Ring 3: 250-415m buffer → 5 min
+   - Ring 4: 415-583m buffer → 7 min
+   - Ring 5: 583-830m buffer → 10 min
+
+3. **Size-Tiered Travel Time**:
+   For 10 key features (park, forest, recreation_ground, farmland, vineyard,
+   beach, lake, coast, river, protected_area), we calculate travel time 
+   to polygons of different sizes:
+   - walk_min_to_{feature} (any size)
+   - walk_min_to_{feature}_small (≤20k m²)
+   - walk_min_to_{feature}_20k (≥20k m²)
+   - walk_min_to_{feature}_2m (≥2M m²)
+   - walk_min_to_{feature}_20m (≥20M m²)
+   - nearest_{feature}_area_m2 (size of nearest polygon)
+
+USAGE
+=====
+
+Command line:
+    python build_earth_matrix.py --bbox "-5.0,41.3,9.6,51.1" --output earth_matrix
+
+Programmatic:
+    from build_earth_matrix import build_earth_matrix
+    result = build_earth_matrix(bbox=[-5.0, 41.3, 9.6, 51.1], output_name="france_matrix")
+
+AUTHOR: Leo ETL Pipeline
+VERSION: 4.0
+"""
+
+import duckdb
+import time
+import logging
+import os
+from pathlib import Path
+from typing import List, Dict, Tuple, Any
+
+# =============================================================================
+# ENVIRONMENT SETUP
+# =============================================================================
+os.environ["HOME"] = os.environ.get("HOME", "/home/ubuntu")
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# CONFIGURATION CONSTANTS
+# =============================================================================
+
+H3_RES = 11  # ~45m edge length
+S3_BASE = "s3://overturemaps-us-west-2/release/2025-12-17.0"
+OUTPUT_DIR = Path("/home/ubuntu/matrix-builder/output")
+
+# Walk speed: 5 km/h = 83.3 m/min
+# Buffer distances for travel time rings (in meters)
+TRAVEL_TIME_RINGS = {
+    0: 0,      # Inside polygon
+    1: 83,     # 0-1 min walk
+    3: 250,    # 1-3 min walk  
+    5: 415,    # 3-5 min walk
+    7: 583,    # 5-7 min walk
+    10: 830,   # 7-10 min walk
+}
+
+# =============================================================================
+# OVERTURE CATEGORY DEFINITIONS
+# =============================================================================
+
+TOP_LEVEL_CATEGORIES = [
+    "accommodation", "active_life", "arts_and_entertainment",
+    "attractions_and_activities", "automotive", "beauty_and_spa",
+    "business_to_business", "eat_and_drink", "education", "financial_service",
+    "health_and_medical", "home_service", "mass_media", "pets",
+    "private_establishments_and_corporates", "professional_services",
+    "public_service_and_government", "real_estate", "religious_organization",
+    "retail", "structure_and_geography", "travel",
+]
+
+SPECIFIC_CATEGORIES: Dict[str, List[str]] = {
+    "cafe": ["cafe", "coffee_shop", "coffee", "tea_room", "coffee_roastery"],
+    "restaurant": ["restaurant", "fast_food", "food_court", "diner", "bistro", "brasserie"],
+    "bar": ["bar", "pub", "nightclub", "wine_bar", "cocktail_bar", "beer_bar", "sports_bar"],
+    "hotel": ["hotel", "motel", "hostel", "guest_house", "bed_and_breakfast", "resort", "inn", "lodge"],
+    "hospital": ["hospital", "clinic", "medical_center", "doctor", "emergency_room", "urgent_care"],
+    "pharmacy": ["pharmacy", "drugstore"],
+    "dentist": ["dentist", "dental_clinic", "orthodontist"],
+    "school": ["school", "primary_school", "secondary_school", "kindergarten", "preschool"],
+    "university": ["university", "college", "higher_education"],
+    "bank": ["bank", "credit_union", "financial_service"],
+    "atm": ["atm"],
+    "supermarket": ["supermarket", "grocery", "hypermarket", "food_store"],
+    "convenience": ["convenience_store", "convenience", "mini_market"],
+    "shopping_mall": ["shopping_mall", "shopping_center", "department_store", "mall"],
+    "gas_station": ["gas_station", "fuel", "petrol_station", "charging_station", "ev_charging"],
+    "parking": ["parking", "parking_lot", "parking_garage", "car_park"],
+    "car_dealer": ["car_dealer", "automotive_dealer", "used_car_dealer"],
+    "car_repair": ["auto_body_shop", "car_wash", "auto_repair", "tire_dealer"],
+    "subway": ["subway_station", "metro_station", "underground_station"],
+    "train": ["train_station", "railway_station", "rail_station"],
+    "bus": ["bus_station", "bus_stop", "bus_terminal"],
+    "airport": ["airport", "aerodrome", "airfield"],
+    "ferry": ["ferry_terminal", "ferry"],
+    "park_poi": ["park", "garden", "playground", "nature_reserve"],
+    "gym": ["gym", "fitness_center", "fitness", "sports_club", "health_club"],
+    "cinema": ["cinema", "movie_theater", "theatre", "theater"],
+    "museum": ["museum", "art_gallery", "gallery", "exhibition"],
+    "library": ["library", "public_library"],
+    "stadium": ["stadium", "arena", "sports_venue"],
+    "police": ["police", "police_station"],
+    "fire": ["fire_station", "fire_department"],
+    "post_office": ["post_office", "postal"],
+    "religious": ["church", "mosque", "temple", "synagogue", "place_of_worship"],
+    "salon": ["hair_salon", "barber", "beauty_salon", "nail_salon"],
+    "spa": ["spa", "massage", "wellness_center"],
+}
+
+LAND_USE_CLASSES = [
+    "park", "forest", "residential", "commercial", "industrial", "retail",
+    "farmland", "orchard", "vineyard", "meadow", "grass", "cemetery",
+    "military", "quarry", "landfill", "recreation_ground", "sports_centre",
+    "golf_course", "stadium", "beach"  # Added beach (natural:beach polygons)
+]
+
+WATER_TYPES: Dict[str, List[str]] = {
+    "lake": ["lake", "pond", "reservoir"],
+    "river": ["river", "stream", "canal"],
+    "coast": ["ocean", "sea", "bay", "strait"],  # Removed "coastline" - handled separately as line
+    "wetland": ["wetland", "marsh", "swamp", "bog"],
+}
+
+INFRASTRUCTURE_TYPES = ["bridge", "pier", "dam", "tower", "aeroway", "communication"]
+
+# =============================================================================
+# NATURAL FEATURES (Additional polygon/line features)
+# =============================================================================
+
+# Protected areas / Natural parks (boundary:protected_area)
+# These are large polygons like national parks, nature reserves
+PROTECTED_AREA_TYPES = [
+    "national_park", "nature_reserve", "protected_area", "wilderness_area",
+    "state_park", "regional_park", "natural_monument"
+]
+
+# Line features that need buffer ring treatment (not polygon fill)
+# These are "way" geometries in OSM terms
+LINE_FEATURES_FOR_BUFFER = [
+    "coastline",  # natural:coastline - the actual coast line
+]
+
+# Features that get travel time columns with size tiers
+# Format: (feature_name, source_type, class_filter)
+TRAVEL_TIME_FEATURES: List[Tuple[str, str, str | List[str]]] = [
+    # Land use polygons
+    ("park", "land_use", "park"),
+    ("forest", "land_use", "forest"),
+    ("recreation_ground", "land_use", "recreation_ground"),
+    ("farmland", "land_use", "farmland"),
+    ("vineyard", "land_use", "vineyard"),
+    ("beach", "land_use", "beach"),  # NEW: beaches
+    # Water polygons
+    ("lake", "water", ["lake", "pond", "reservoir"]),
+    ("coast", "water", ["ocean", "sea", "bay", "strait"]),
+    ("river", "water", ["river", "stream", "canal"]),
+    # Protected areas (NEW)
+    ("protected_area", "protected_area", PROTECTED_AREA_TYPES),
+]
+
+# Line features for buffer-only travel time (no hex fill, just travel time)
+# Format: (feature_name, source_type)
+LINE_TRAVEL_TIME_FEATURES = [
+    ("coastline", "coastline"),  # natural:coastline ways
+]
+
+# Size tiers for travel time (in m²)
+SIZE_TIERS = {
+    "small": (0, 20000),       # ≤20k m²
+    "20k": (20000, None),      # ≥20k m²
+    "2m": (2000000, None),     # ≥2M m²
+    "20m": (20000000, None),   # ≥20M m²
+}
+
+
+# =============================================================================
+# MAIN ETL FUNCTION
+# =============================================================================
+
+def build_earth_matrix(bbox: List[float], output_name: str = "earth_matrix") -> Dict[str, Any]:
+    """
+    Build the Earth Matrix for a given bounding box.
+    
+    Uses polygon fill + buffer rings for accurate spatial calculations.
+    """
+    start_time = time.time()
+    
+    logger.info("=" * 80)
+    logger.info("🌍 EARTH MATRIX ETL v4.0 - Polygon Fill + Buffer Rings")
+    logger.info("=" * 80)
+    logger.info(f"H3 Resolution: {H3_RES} (~45m hexes)")
+    logger.info(f"Bounding Box: {bbox}")
+    logger.info("=" * 80)
+    
+    # -------------------------------------------------------------------------
+    # DUCKDB INITIALIZATION
+    # -------------------------------------------------------------------------
+    con = duckdb.connect()
+    con.execute(f"SET home_directory='{os.environ['HOME']}';")
+    con.execute("SET threads TO 192;")
+    con.execute("SET memory_limit = '1400GB';")
+    con.execute("INSTALL spatial; LOAD spatial;")
+    con.execute("INSTALL httpfs; LOAD httpfs;")
+    con.execute("INSTALL h3 FROM community; LOAD h3;")
+    con.execute("SET s3_region='us-west-2';")
+    logger.info("✅ DuckDB initialized: 192 threads, 1.4TB RAM")
+    
+    bbox_filter = (
+        f"bbox.xmin >= {bbox[0]} AND bbox.ymin >= {bbox[1]} AND "
+        f"bbox.xmax <= {bbox[2]} AND bbox.ymax <= {bbox[3]}"
+    )
+    
+    # =========================================================================
+    # STEP 1: PLACES (22 Top-Level + 35 Specific Categories)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("📍 STEP 1: PLACES (22 Top-Level + 35 Specific Categories)")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    top_level_cases = []
+    for cat in TOP_LEVEL_CATEGORIES:
+        safe_name = cat.replace('_', '')
+        top_level_cases.append(
+            f"SUM(CASE WHEN LOWER(categories.primary) LIKE '%{cat}%' OR "
+            f"LOWER(COALESCE(CAST(categories.alternate AS VARCHAR), '')) LIKE '%{cat}%' "
+            f"THEN 1 ELSE 0 END) as cat_{safe_name}_count"
+        )
+    
+    specific_cases = []
+    for cat_name, keywords in SPECIFIC_CATEGORIES.items():
+        kw_list = ", ".join([f"'{k}'" for k in keywords])
+        specific_cases.append(
+            f"SUM(CASE WHEN LOWER(categories.primary) IN ({kw_list}) THEN 1 ELSE 0 END) as {cat_name}_count"
+        )
+    
+    all_cases = top_level_cases + specific_cases
+    
+    places_sql = f"""
+        CREATE TABLE places_h3 AS
+            SELECT 
+            h3_latlng_to_cell(ST_Y(geometry), ST_X(geometry), {H3_RES})::VARCHAR as h3_index,
+            COUNT(*) as total_places,
+            {', '.join(all_cases)},
+            AVG(ST_X(geometry)) as centroid_lon,
+            AVG(ST_Y(geometry)) as centroid_lat
+        FROM read_parquet('{S3_BASE}/theme=places/type=place/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+        GROUP BY 1
+    """
+    con.execute(places_sql)
+    places_stats = con.execute("SELECT COUNT(*), SUM(total_places) FROM places_h3").fetchone()
+    logger.info(f"✅ Places: {places_stats[0]:,} hexes, {places_stats[1]:,} POIs ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 2: BUILDINGS
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🏢 STEP 2: BUILDINGS")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    buildings_sql = f"""
+        CREATE TABLE buildings_h3 AS
+            SELECT 
+            h3_latlng_to_cell(ST_Y(ST_Centroid(geometry)), ST_X(ST_Centroid(geometry)), {H3_RES})::VARCHAR as h3_index,
+            COUNT(*) as building_density,
+            AVG(COALESCE(height, 10)) as avg_building_height,
+            SUM(COALESCE(height, 10)) as urban_volume,
+            AVG(COALESCE(num_floors, CEIL(COALESCE(height, 10) / 3.0))) as avg_floors
+        FROM read_parquet('{S3_BASE}/theme=buildings/type=building/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+        GROUP BY 1
+    """
+    con.execute(buildings_sql)
+    buildings_stats = con.execute("SELECT COUNT(*), SUM(building_density) FROM buildings_h3").fetchone()
+    logger.info(f"✅ Buildings: {buildings_stats[0]:,} hexes, {buildings_stats[1]:,} buildings ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 3: LAND USE - POLYGON FILL (19 Classes)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🌿 STEP 3: LAND USE - POLYGON FILL (19 Classes)")
+    logger.info("=" * 80)
+    logger.info("   Using h3_polygon_to_cells() for accurate hex fill")
+    t0 = time.time()
+    
+    # First, load all land use polygons with their IDs and areas
+    con.execute(f"""
+        CREATE TABLE land_use_polygons AS
+            SELECT 
+            id as polygon_id,
+            LOWER(class) as class,
+            geometry,
+            ST_Area_Spheroid(geometry) as polygon_area_m2
+        FROM read_parquet('{S3_BASE}/theme=base/type=land_use/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+          AND class IS NOT NULL
+    """)
+    polygon_count = con.execute("SELECT COUNT(*) FROM land_use_polygons").fetchone()[0]
+    logger.info(f"   Loaded {polygon_count:,} land use polygons")
+    
+    # Fill each polygon with H3 hexes, carrying polygon_id and computing hex count per polygon
+    con.execute(f"""
+        CREATE TABLE land_use_hex_fill AS
+        WITH polygon_hexes AS (
+            SELECT 
+                polygon_id,
+                class,
+                polygon_area_m2,
+                h3_polygon_to_cells(geometry, {H3_RES}) as hex_array
+            FROM land_use_polygons
+        ),
+        with_counts AS (
+            SELECT
+                polygon_id,
+                class,
+                polygon_area_m2,
+                hex_array,
+                ARRAY_LENGTH(hex_array) as hexes_in_polygon
+            FROM polygon_hexes
+            WHERE hex_array IS NOT NULL AND ARRAY_LENGTH(hex_array) > 0
+        )
+        SELECT
+            UNNEST(hex_array)::VARCHAR as h3_index,
+            polygon_id,
+            class,
+            polygon_area_m2,
+            polygon_area_m2 / GREATEST(hexes_in_polygon, 1) as area_share_m2
+        FROM with_counts
+    """)
+    hex_fill_count = con.execute("SELECT COUNT(*) FROM land_use_hex_fill").fetchone()[0]
+    logger.info(f"   Filled {hex_fill_count:,} hex-polygon pairs")
+    
+    # Build aggregation columns for each land use class
+    lu_count_cols = []
+    lu_area_cols = []
+    lu_avg_cols = []
+    for lu_class in LAND_USE_CLASSES:
+        lu_count_cols.append(
+            f"COUNT(DISTINCT CASE WHEN class = '{lu_class}' THEN polygon_id END) as {lu_class}_count"
+        )
+        lu_area_cols.append(
+            f"SUM(CASE WHEN class = '{lu_class}' THEN area_share_m2 ELSE 0 END) as {lu_class}_area_in_hex_m2"
+        )
+        lu_avg_cols.append(
+            f"AVG(CASE WHEN class = '{lu_class}' THEN polygon_area_m2 END) as {lu_class}_avg_polygon_m2"
+        )
+    
+    con.execute(f"""
+        CREATE TABLE land_use_h3 AS
+            SELECT 
+            h3_index,
+            {', '.join(lu_count_cols)},
+            {', '.join(lu_area_cols)},
+            {', '.join(lu_avg_cols)},
+            SUM(area_share_m2) as total_land_area_in_hex_m2,
+            AVG(polygon_area_m2) as avg_polygon_m2
+        FROM land_use_hex_fill
+        GROUP BY 1
+    """)
+    land_stats = con.execute("SELECT COUNT(*) FROM land_use_h3").fetchone()[0]
+    logger.info(f"✅ Land Use: {land_stats:,} hexes with polygon fill ({time.time()-t0:.1f}s)")
+    
+    # Log sample counts
+    for lu in ["park", "forest", "vineyard", "farmland"]:
+        cnt = con.execute(f"SELECT SUM({lu}_count) FROM land_use_h3").fetchone()[0] or 0
+        area = con.execute(f"SELECT SUM({lu}_area_in_hex_m2) / 1e6 FROM land_use_h3").fetchone()[0] or 0
+        logger.info(f"   🏷️ {lu}: {cnt:,} distinct polygons, {area:,.1f} km²")
+    
+    # =========================================================================
+    # STEP 4: WATER - POLYGON FILL (4 Types)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("💧 STEP 4: WATER - POLYGON FILL (4 Types)")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    # Build water type mapping SQL
+    water_type_cases = []
+    for water_type, keywords in WATER_TYPES.items():
+        kw_list = ", ".join([f"'{k}'" for k in keywords])
+        water_type_cases.append(f"WHEN LOWER(class) IN ({kw_list}) THEN '{water_type}'")
+    water_type_sql = "CASE " + " ".join(water_type_cases) + " ELSE NULL END"
+    
+    con.execute(f"""
+        CREATE TABLE water_polygons AS
+            SELECT 
+            id as polygon_id,
+            {water_type_sql} as water_type,
+                geometry,
+            ST_Area_Spheroid(geometry) as polygon_area_m2
+        FROM read_parquet('{S3_BASE}/theme=base/type=water/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+          AND ({water_type_sql}) IS NOT NULL
+    """)
+    water_polygon_count = con.execute("SELECT COUNT(*) FROM water_polygons").fetchone()[0]
+    logger.info(f"   Loaded {water_polygon_count:,} water polygons")
+    
+    con.execute(f"""
+        CREATE TABLE water_hex_fill AS
+        WITH polygon_hexes AS (
+            SELECT 
+                polygon_id,
+                water_type,
+                polygon_area_m2,
+                h3_polygon_to_cells(geometry, {H3_RES}) as hex_array
+            FROM water_polygons
+        ),
+        with_counts AS (
+            SELECT
+                polygon_id,
+                water_type,
+                polygon_area_m2,
+                hex_array,
+                ARRAY_LENGTH(hex_array) as hexes_in_polygon
+            FROM polygon_hexes
+            WHERE hex_array IS NOT NULL AND ARRAY_LENGTH(hex_array) > 0
+        )
+        SELECT
+            UNNEST(hex_array)::VARCHAR as h3_index,
+            polygon_id,
+            water_type,
+            polygon_area_m2,
+            polygon_area_m2 / GREATEST(hexes_in_polygon, 1) as area_share_m2
+        FROM with_counts
+    """)
+    
+    # Build aggregation columns for each water type
+    water_count_cols = []
+    water_area_cols = []
+    water_avg_cols = []
+    for water_type in WATER_TYPES.keys():
+        water_count_cols.append(
+            f"COUNT(DISTINCT CASE WHEN water_type = '{water_type}' THEN polygon_id END) as {water_type}_count"
+        )
+        water_area_cols.append(
+            f"SUM(CASE WHEN water_type = '{water_type}' THEN area_share_m2 ELSE 0 END) as {water_type}_area_in_hex_m2"
+        )
+        water_avg_cols.append(
+            f"AVG(CASE WHEN water_type = '{water_type}' THEN polygon_area_m2 END) as {water_type}_avg_polygon_m2"
+        )
+    
+    con.execute(f"""
+        CREATE TABLE water_h3 AS
+            SELECT 
+            h3_index,
+            {', '.join(water_count_cols)},
+            {', '.join(water_area_cols)},
+            {', '.join(water_avg_cols)},
+            COUNT(DISTINCT polygon_id) as water_count,
+            SUM(area_share_m2) as total_water_area_in_hex_m2,
+            AVG(polygon_area_m2) as avg_water_polygon_m2
+        FROM water_hex_fill
+        GROUP BY 1
+    """)
+    water_stats = con.execute("SELECT COUNT(*) FROM water_h3").fetchone()[0]
+    logger.info(f"✅ Water: {water_stats:,} hexes with polygon fill ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 5: INFRASTRUCTURE (6 Types)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🌉 STEP 5: INFRASTRUCTURE (6 Types)")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    infra_cases = [
+        f"SUM(CASE WHEN LOWER(class) = '{it}' THEN 1 ELSE 0 END) as {it}_count"
+        for it in INFRASTRUCTURE_TYPES
+    ]
+    
+    con.execute(f"""
+        CREATE TABLE infrastructure_h3 AS
+        WITH features AS (
+            SELECT geometry, class
+            FROM read_parquet('{S3_BASE}/theme=base/type=infrastructure/*', hive_partitioning=1)
+            WHERE {bbox_filter}
+        ),
+        hexes AS (
+            SELECT DISTINCT 
+                h3_latlng_to_cell(
+                    ST_Y(CASE WHEN ST_GeometryType(geometry) = 'POINT' THEN geometry ELSE ST_Centroid(geometry) END),
+                    ST_X(CASE WHEN ST_GeometryType(geometry) = 'POINT' THEN geometry ELSE ST_Centroid(geometry) END),
+                    {H3_RES}
+                )::VARCHAR as h3_index,
+                class
+            FROM features
+        )
+                SELECT 
+                    h3_index,
+            {', '.join(infra_cases)},
+            COUNT(*) as infrastructure_count
+        FROM hexes
+                GROUP BY 1
+            """)
+    infra_stats = con.execute("SELECT COUNT(*), SUM(bridge_count), SUM(tower_count) FROM infrastructure_h3").fetchone()
+    logger.info(f"✅ Infrastructure: {infra_stats[0]:,} hexes ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 6: TRANSPORTATION (Roads & Rail)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🛣️ STEP 6: TRANSPORTATION (Roads & Rail)")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    con.execute(f"""
+        CREATE TABLE transportation_h3 AS
+        WITH segments AS (
+            SELECT geometry, subtype, class
+            FROM read_parquet('{S3_BASE}/theme=transportation/type=segment/*', hive_partitioning=1)
+            WHERE {bbox_filter}
+        ),
+        hexes AS (
+            SELECT DISTINCT 
+                h3_latlng_to_cell(ST_Y(ST_Centroid(geometry)), ST_X(ST_Centroid(geometry)), {H3_RES})::VARCHAR as h3_index,
+                subtype,
+                class
+            FROM segments
+        )
+        SELECT
+            h3_index,
+            SUM(CASE WHEN subtype = 'road' THEN 1 ELSE 0 END) as road_density,
+            SUM(CASE WHEN subtype = 'road' AND class IN ('motorway', 'trunk', 'primary', 'secondary') THEN 1 ELSE 0 END) as major_road_density,
+            SUM(CASE WHEN subtype = 'rail' THEN 1 ELSE 0 END) as rail_density,
+            SUM(CASE WHEN class IN ('footway', 'pedestrian', 'path') THEN 1 ELSE 0 END) as pedestrian_density
+        FROM hexes
+        GROUP BY 1
+    """)
+    transport_stats = con.execute("SELECT COUNT(*), SUM(road_density), SUM(rail_density) FROM transportation_h3").fetchone()
+    logger.info(f"✅ Transportation: {transport_stats[0]:,} hexes ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 6b: PROTECTED AREAS / NATURAL PARKS (Polygon Fill)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🏞️ STEP 6b: PROTECTED AREAS / NATURAL PARKS (Polygon Fill)")
+    logger.info("=" * 80)
+    logger.info("   Sources: boundary:protected_area, designation:natural_park")
+    t0 = time.time()
+    
+    # Protected areas come from Overture's divisions theme or land_use
+    # Try multiple sources: divisions boundaries and land_use with protected area classes
+    protected_types_sql = ", ".join([f"'{t}'" for t in PROTECTED_AREA_TYPES])
+    
+    con.execute(f"""
+        CREATE TABLE protected_area_polygons AS
+        -- Try from land_use first (some protected areas are tagged there)
+        SELECT 
+            id as polygon_id,
+            COALESCE(LOWER(class), 'protected_area') as class,
+            geometry,
+            ST_Area_Spheroid(geometry) as polygon_area_m2
+        FROM read_parquet('{S3_BASE}/theme=base/type=land_use/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+          AND (
+              LOWER(class) IN ({protected_types_sql})
+              OR LOWER(COALESCE(subtype, '')) IN ({protected_types_sql})
+              OR LOWER(COALESCE(CAST(names AS VARCHAR), '')) LIKE '%national park%'
+              OR LOWER(COALESCE(CAST(names AS VARCHAR), '')) LIKE '%nature reserve%'
+          )
+    """)
+    
+    protected_count = con.execute("SELECT COUNT(*) FROM protected_area_polygons").fetchone()[0]
+    logger.info(f"   Found {protected_count:,} protected area polygons")
+    
+    if protected_count > 0:
+        # Fill with H3 hexes
+        con.execute(f"""
+            CREATE TABLE protected_area_hex_fill AS
+            WITH polygon_hexes AS (
+                SELECT 
+                    polygon_id,
+                    class,
+                    polygon_area_m2,
+                    h3_polygon_to_cells(geometry, {H3_RES}) as hex_array
+                FROM protected_area_polygons
+            ),
+            with_counts AS (
+                SELECT
+                    polygon_id,
+                    class,
+                    polygon_area_m2,
+                    hex_array,
+                    ARRAY_LENGTH(hex_array) as hexes_in_polygon
+                FROM polygon_hexes
+                WHERE hex_array IS NOT NULL AND ARRAY_LENGTH(hex_array) > 0
+            )
+            SELECT 
+                UNNEST(hex_array)::VARCHAR as h3_index,
+                polygon_id,
+                class,
+                polygon_area_m2,
+                polygon_area_m2 / GREATEST(hexes_in_polygon, 1) as area_share_m2
+            FROM with_counts
+        """)
+        
+        con.execute(f"""
+            CREATE TABLE protected_area_h3 AS
+                SELECT 
+                    h3_index,
+                COUNT(DISTINCT polygon_id) as protected_area_count,
+                SUM(area_share_m2) as protected_area_in_hex_m2,
+                AVG(polygon_area_m2) as protected_area_avg_polygon_m2
+            FROM protected_area_hex_fill
+                GROUP BY 1
+            """)
+        protected_stats = con.execute("SELECT COUNT(*), SUM(protected_area_count) FROM protected_area_h3").fetchone()
+        logger.info(f"✅ Protected Areas: {protected_stats[0]:,} hexes, {protected_stats[1]:,} polygons ({time.time()-t0:.1f}s)")
+    else:
+        # Create empty table
+        con.execute("""
+            CREATE TABLE protected_area_h3 AS
+            SELECT NULL::VARCHAR as h3_index, 
+                   0::BIGINT as protected_area_count,
+                   0::DOUBLE as protected_area_in_hex_m2,
+                   NULL::DOUBLE as protected_area_avg_polygon_m2
+        WHERE 1=0
+    """)
+        logger.info(f"✅ Protected Areas: No polygons found in region ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 6c: COASTLINES (Line Features - Buffer Rings Only)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🏖️ STEP 6c: COASTLINES (Line Features)")
+    logger.info("=" * 80)
+    logger.info("   Processing natural:coastline ways with buffer rings")
+    t0 = time.time()
+    
+    # Coastlines are line features (ways) - we'll load them for buffer ring processing
+    # They're typically in the water theme or as land boundaries
+    con.execute(f"""
+        CREATE TABLE coastline_lines AS
+        SELECT 
+            id as line_id,
+            geometry,
+            ST_Length_Spheroid(geometry) as length_m
+        FROM read_parquet('{S3_BASE}/theme=base/type=water/*', hive_partitioning=1)
+        WHERE {bbox_filter}
+          AND LOWER(class) = 'coastline'
+          AND ST_GeometryType(geometry) IN ('LINESTRING', 'MULTILINESTRING')
+    """)
+    
+    coastline_count = con.execute("SELECT COUNT(*) FROM coastline_lines").fetchone()[0]
+    
+    if coastline_count == 0:
+        # Try land theme as backup
+        con.execute(f"""
+            CREATE OR REPLACE TABLE coastline_lines AS
+            SELECT 
+                id as line_id,
+                geometry,
+                ST_Length_Spheroid(geometry) as length_m
+            FROM read_parquet('{S3_BASE}/theme=base/type=land/*', hive_partitioning=1)
+            WHERE {bbox_filter}
+              AND LOWER(class) = 'coastline'
+              AND ST_GeometryType(geometry) IN ('LINESTRING', 'MULTILINESTRING')
+        """)
+        coastline_count = con.execute("SELECT COUNT(*) FROM coastline_lines").fetchone()[0]
+    
+    logger.info(f"   Found {coastline_count:,} coastline segments")
+    
+    # Coastlines don't get hex fill (they're lines), but we'll use them for travel time
+    # Create an empty h3 table for consistency in the join
+    con.execute("""
+        CREATE TABLE coastline_h3 AS
+        SELECT NULL::VARCHAR as h3_index, 0::BIGINT as coastline_count
+        WHERE 1=0
+    """)
+    logger.info(f"✅ Coastlines: {coastline_count:,} line segments loaded ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 7: CREATE UNIFIED HEX INDEX
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🔗 STEP 7: Creating unified hex index")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    con.execute("""
+        CREATE TABLE all_hexes AS
+        SELECT DISTINCT h3_index FROM (
+            SELECT h3_index FROM places_h3
+            UNION SELECT h3_index FROM buildings_h3
+            UNION SELECT h3_index FROM land_use_h3
+            UNION SELECT h3_index FROM water_h3
+            UNION SELECT h3_index FROM infrastructure_h3
+            UNION SELECT h3_index FROM transportation_h3
+            UNION SELECT h3_index FROM protected_area_h3
+        )
+    """)
+    total_hexes = con.execute("SELECT COUNT(*) FROM all_hexes").fetchone()[0]
+    logger.info(f"✅ Total unique hexes: {total_hexes:,} ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 8: TRAVEL TIME VIA BUFFER RINGS
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info(f"⏱️ STEP 8: TRAVEL TIME VIA BUFFER RINGS")
+    logger.info("=" * 80)
+    logger.info(f"   8 features × 5 size tiers = 40 travel time calculations")
+    logger.info(f"   Buffer rings at: {list(TRAVEL_TIME_RINGS.values())} meters")
+    t0 = time.time()
+    
+    travel_time_tables = []
+    
+    for feature_name, source_type, class_filter in TRAVEL_TIME_FEATURES:
+        logger.info(f"\n   Processing {feature_name}...")
+        
+        # Determine source table and filter based on source type
+        if source_type == "land_use":
+            source_table = "land_use_polygons"
+            if isinstance(class_filter, list):
+                filter_sql = f"class IN ({', '.join([repr(c) for c in class_filter])})"
+            else:
+                filter_sql = f"class = '{class_filter}'"
+        elif source_type == "water":
+            source_table = "water_polygons"
+            if isinstance(class_filter, list):
+                filter_sql = f"water_type IN ({', '.join([repr(c) for c in class_filter])})"
+            else:
+                filter_sql = f"water_type = '{class_filter}'"
+        elif source_type == "protected_area":
+            source_table = "protected_area_polygons"
+            if isinstance(class_filter, list):
+                filter_sql = f"class IN ({', '.join([repr(c) for c in class_filter])})"
+            else:
+                filter_sql = f"class = '{class_filter}'"
+        else:
+            logger.warning(f"   Unknown source type: {source_type}, skipping")
+            continue
+        
+        # Process each size tier
+        for tier_name, (min_area, max_area) in SIZE_TIERS.items():
+            score_name = f"{feature_name}_{tier_name}"
+            
+            # Build area filter
+            if max_area is not None:
+                area_filter = f"polygon_area_m2 <= {max_area}"
+            else:
+                area_filter = f"polygon_area_m2 >= {min_area}"
+            
+            try:
+                # Get qualifying polygons for this tier
+                con.execute(f"""
+                    CREATE OR REPLACE TABLE tt_polygons_{score_name} AS
+                    SELECT polygon_id, geometry, polygon_area_m2
+                    FROM {source_table}
+                    WHERE {filter_sql} AND {area_filter}
+                """)
+                
+                poly_count = con.execute(f"SELECT COUNT(*) FROM tt_polygons_{score_name}").fetchone()[0]
+                
+                if poly_count == 0:
+                    # No polygons in this tier, create empty table
+                    con.execute(f"""
+                        CREATE OR REPLACE TABLE tt_{score_name} AS
+                        SELECT NULL::VARCHAR as h3_index, 
+                               NULL::INT as walk_min_to_{score_name},
+                               NULL::FLOAT as nearest_{feature_name}_area_m2
+                        WHERE 1=0
+                    """)
+                    continue
+                    
+                # Create buffer rings and fill with hexes
+                ring_queries = []
+                
+                # Ring 0: Inside the polygon
+                ring_queries.append(f"""
+                    SELECT 
+                        UNNEST(h3_polygon_to_cells(geometry, {H3_RES}))::VARCHAR as h3_index,
+                        0 as walk_min,
+                        polygon_area_m2
+                    FROM tt_polygons_{score_name}
+                    WHERE h3_polygon_to_cells(geometry, {H3_RES}) IS NOT NULL
+                """)
+                
+                # Buffer rings at increasing distances
+                prev_dist = 0
+                for walk_min, dist in sorted(TRAVEL_TIME_RINGS.items()):
+                    if walk_min == 0:
+                        continue  # Already handled above
+                    
+                    ring_queries.append(f"""
+                        SELECT 
+                            UNNEST(h3_polygon_to_cells(
+                                ST_Difference(
+                                    ST_Buffer(geometry::GEOMETRY, {dist}),
+                                    ST_Buffer(geometry::GEOMETRY, {prev_dist})
+                                ), {H3_RES}
+                            ))::VARCHAR as h3_index,
+                            {walk_min} as walk_min,
+                            polygon_area_m2
+                        FROM tt_polygons_{score_name}
+                        WHERE ST_Buffer(geometry::GEOMETRY, {dist}) IS NOT NULL
+                    """)
+                    prev_dist = dist
+                
+                # Combine all rings and get minimum walk time per hex
+                combined_rings = " UNION ALL ".join(ring_queries)
+                
+                con.execute(f"""
+                    CREATE OR REPLACE TABLE tt_{score_name} AS
+                    WITH all_rings AS ({combined_rings}),
+                    ranked AS (
+                        SELECT 
+                            h3_index,
+                            walk_min,
+                            polygon_area_m2,
+                            ROW_NUMBER() OVER (PARTITION BY h3_index ORDER BY walk_min, polygon_area_m2 DESC) as rn
+                        FROM all_rings
+                        WHERE h3_index IS NOT NULL
+                    )
+                    SELECT 
+                        h3_index,
+                        walk_min as walk_min_to_{score_name},
+                        polygon_area_m2 as nearest_{feature_name}_area_m2
+                    FROM ranked
+                    WHERE rn = 1
+                """)
+                
+                tt_count = con.execute(f"SELECT COUNT(*) FROM tt_{score_name}").fetchone()[0]
+                travel_time_tables.append((score_name, feature_name, tt_count))
+                        
+            except Exception as e:
+                logger.warning(f"      ⚠️ Error on {score_name}: {e}")
+                con.execute(f"""
+                    CREATE OR REPLACE TABLE tt_{score_name} AS
+                    SELECT NULL::VARCHAR as h3_index,
+                           NULL::INT as walk_min_to_{score_name},
+                           NULL::FLOAT as nearest_{feature_name}_area_m2
+                    WHERE 1=0
+                """)
+        
+        logger.info(f"   ✅ {feature_name}: 4 size tiers processed")
+    
+    # Create combined travel time table with all features (any size)
+    for feature_name, source_type, class_filter in TRAVEL_TIME_FEATURES:
+        # Combine all tiers for this feature to get "any size" travel time
+        tier_tables = [f"tt_{feature_name}_{tier}" for tier in SIZE_TIERS.keys()]
+        union_parts = []
+        for tier in SIZE_TIERS.keys():
+            union_parts.append(f"""
+                SELECT h3_index, walk_min_to_{feature_name}_{tier} as walk_min, 
+                       nearest_{feature_name}_area_m2 as area_m2
+                FROM tt_{feature_name}_{tier}
+            """)
+        
+        con.execute(f"""
+            CREATE OR REPLACE TABLE tt_{feature_name}_any AS
+            WITH all_tiers AS ({' UNION ALL '.join(union_parts)}),
+            ranked AS (
+                SELECT h3_index, walk_min, area_m2,
+                       ROW_NUMBER() OVER (PARTITION BY h3_index ORDER BY walk_min, area_m2 DESC) as rn
+                FROM all_tiers
+                WHERE h3_index IS NOT NULL
+            )
+            SELECT 
+                h3_index,
+                walk_min as walk_min_to_{feature_name},
+                area_m2 as nearest_{feature_name}_area_m2
+            FROM ranked WHERE rn = 1
+        """)
+    
+    logger.info(f"\n✅ Polygon travel time complete: {len(travel_time_tables)} tier calculations ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 8b: COASTLINE TRAVEL TIME (Line Features)
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🏖️ STEP 8b: COASTLINE TRAVEL TIME (Line Buffer Rings)")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    coastline_count = con.execute("SELECT COUNT(*) FROM coastline_lines").fetchone()[0]
+    
+    if coastline_count > 0:
+        # Create buffer rings around coastline LINES (not polygons)
+        ring_queries = []
+        prev_dist = 0
+        
+        for walk_min, dist in sorted(TRAVEL_TIME_RINGS.items()):
+            if walk_min == 0:
+                # For lines, "inside" means very close (within ~50m)
+                ring_queries.append(f"""
+                    SELECT 
+                        UNNEST(h3_polygon_to_cells(
+                            ST_Buffer(geometry::GEOMETRY, 50), {H3_RES}
+                        ))::VARCHAR as h3_index,
+                        0 as walk_min
+                    FROM coastline_lines
+                    WHERE ST_Buffer(geometry::GEOMETRY, 50) IS NOT NULL
+                """)
+                prev_dist = 50
+            else:
+                # Buffer ring around the line
+                ring_queries.append(f"""
+                    SELECT 
+                        UNNEST(h3_polygon_to_cells(
+                            ST_Difference(
+                                ST_Buffer(geometry::GEOMETRY, {dist}),
+                                ST_Buffer(geometry::GEOMETRY, {prev_dist})
+                            ), {H3_RES}
+                        ))::VARCHAR as h3_index,
+                        {walk_min} as walk_min
+                    FROM coastline_lines
+                    WHERE ST_Buffer(geometry::GEOMETRY, {dist}) IS NOT NULL
+                """)
+                prev_dist = dist
+        
+        combined_rings = " UNION ALL ".join(ring_queries)
+        
+        con.execute(f"""
+            CREATE TABLE tt_coastline AS
+            WITH all_rings AS ({combined_rings}),
+            ranked AS (
+        SELECT 
+                    h3_index,
+                    walk_min,
+                    ROW_NUMBER() OVER (PARTITION BY h3_index ORDER BY walk_min) as rn
+                FROM all_rings
+                WHERE h3_index IS NOT NULL
+            )
+            SELECT 
+                h3_index,
+                walk_min as walk_min_to_coastline
+            FROM ranked
+            WHERE rn = 1
+        """)
+        
+        coastline_tt_count = con.execute("SELECT COUNT(*) FROM tt_coastline").fetchone()[0]
+        logger.info(f"✅ Coastline travel time: {coastline_tt_count:,} hexes ({time.time()-t0:.1f}s)")
+    else:
+        con.execute("""
+            CREATE TABLE tt_coastline AS
+            SELECT NULL::VARCHAR as h3_index, NULL::INT as walk_min_to_coastline
+            WHERE 1=0
+        """)
+        logger.info(f"✅ Coastline travel time: No coastlines in region ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 9: FINAL MERGE
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("🔗 STEP 9: FINAL MERGE")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    # POI columns
+    top_cat_cols = ", ".join([
+        f"COALESCE(pl.cat_{cat.replace('_', '')}_count, 0) as cat_{cat.replace('_', '')}_count"
+        for cat in TOP_LEVEL_CATEGORIES
+    ])
+    spec_cat_cols = ", ".join([
+        f"COALESCE(pl.{cat}_count, 0) as {cat}_count"
+        for cat in SPECIFIC_CATEGORIES.keys()
+    ])
+    
+    # Land use columns (polygon fill)
+    lu_count_cols = ", ".join([f"COALESCE(lu.{lu}_count, 0) as {lu}_count" for lu in LAND_USE_CLASSES])
+    lu_area_cols = ", ".join([f"COALESCE(lu.{lu}_area_in_hex_m2, 0) as {lu}_area_in_hex_m2" for lu in LAND_USE_CLASSES])
+    lu_avg_cols = ", ".join([f"lu.{lu}_avg_polygon_m2" for lu in LAND_USE_CLASSES])
+    
+    # Water columns (polygon fill)
+    water_count_cols = ", ".join([f"COALESCE(w.{wt}_count, 0) as {wt}_count" for wt in WATER_TYPES.keys()])
+    water_area_cols = ", ".join([f"COALESCE(w.{wt}_area_in_hex_m2, 0) as {wt}_area_in_hex_m2" for wt in WATER_TYPES.keys()])
+    water_avg_cols = ", ".join([f"w.{wt}_avg_polygon_m2" for wt in WATER_TYPES.keys()])
+    
+    # Infrastructure columns
+    infra_cols = ", ".join([f"COALESCE(inf.{it}_count, 0) as {it}_count" for it in INFRASTRUCTURE_TYPES])
+    
+    # Travel time joins and columns
+    tt_joins = []
+    tt_cols = []
+    
+    for feature_name, source_type, class_filter in TRAVEL_TIME_FEATURES:
+        # "Any size" travel time
+        tt_joins.append(f"LEFT JOIN tt_{feature_name}_any tt_any_{feature_name} ON a.h3_index = tt_any_{feature_name}.h3_index")
+        tt_cols.append(f"tt_any_{feature_name}.walk_min_to_{feature_name}")
+        tt_cols.append(f"tt_any_{feature_name}.nearest_{feature_name}_area_m2")
+        
+        # Size-tiered travel times
+        for tier_name in SIZE_TIERS.keys():
+            score_name = f"{feature_name}_{tier_name}"
+            tt_joins.append(f"LEFT JOIN tt_{score_name} tt_{score_name} ON a.h3_index = tt_{score_name}.h3_index")
+            tt_cols.append(f"tt_{score_name}.walk_min_to_{score_name}")
+    
+    # Add coastline travel time (line feature)
+    tt_joins.append("LEFT JOIN tt_coastline tt_coastline ON a.h3_index = tt_coastline.h3_index")
+    tt_cols.append("tt_coastline.walk_min_to_coastline")
+    
+    tt_joins_sql = "\n".join(tt_joins)
+    tt_cols_sql = ", ".join(tt_cols)
+    
+    merge_sql = f"""
+        CREATE TABLE earth_matrix AS
+        SELECT 
+            a.h3_index,
+            
+            -- Total POIs
+            COALESCE(pl.total_places, 0) as total_places,
+            
+            -- Top-Level Categories (22)
+            {top_cat_cols},
+            
+            -- Specific Categories (35)
+            {spec_cat_cols},
+            
+            -- Buildings (4)
+            COALESCE(b.building_density, 0) as building_density,
+            COALESCE(b.avg_building_height, 0) as avg_building_height,
+            COALESCE(b.urban_volume, 0) as urban_volume,
+            COALESCE(b.avg_floors, 0) as avg_floors,
+            
+            -- Land Use Counts (19) - distinct polygons
+            {lu_count_cols},
+            
+            -- Land Use Area in Hex (19) - distributed area
+            {lu_area_cols},
+            
+            -- Land Use Avg Polygon Size (19)
+            {lu_avg_cols},
+            COALESCE(lu.total_land_area_in_hex_m2, 0) as total_land_area_in_hex_m2,
+            lu.avg_polygon_m2 as land_avg_polygon_m2,
+            
+            -- Water Counts (4) - distinct polygons
+            {water_count_cols},
+            
+            -- Water Area in Hex (4) - distributed area
+            {water_area_cols},
+            
+            -- Water Avg Polygon Size (4)
+            {water_avg_cols},
+            COALESCE(w.water_count, 0) as water_count,
+            COALESCE(w.total_water_area_in_hex_m2, 0) as total_water_area_in_hex_m2,
+            w.avg_water_polygon_m2,
+            
+            -- Infrastructure (7)
+            {infra_cols},
+            COALESCE(inf.infrastructure_count, 0) as infrastructure_count,
+            
+            -- Protected Areas (3)
+            COALESCE(pa.protected_area_count, 0) as protected_area_count,
+            COALESCE(pa.protected_area_in_hex_m2, 0) as protected_area_in_hex_m2,
+            pa.protected_area_avg_polygon_m2,
+            
+            -- Transportation (4)
+            COALESCE(t.road_density, 0) as road_density,
+            COALESCE(t.major_road_density, 0) as major_road_density,
+            COALESCE(t.rail_density, 0) as rail_density,
+            COALESCE(t.pedestrian_density, 0) as pedestrian_density,
+            
+            -- Travel Time columns (10 features + coastline)
+            {tt_cols_sql}
+            
+        FROM all_hexes a
+        LEFT JOIN places_h3 pl ON a.h3_index = pl.h3_index
+        LEFT JOIN buildings_h3 b ON a.h3_index = b.h3_index
+        LEFT JOIN land_use_h3 lu ON a.h3_index = lu.h3_index
+        LEFT JOIN water_h3 w ON a.h3_index = w.h3_index
+        LEFT JOIN infrastructure_h3 inf ON a.h3_index = inf.h3_index
+        LEFT JOIN protected_area_h3 pa ON a.h3_index = pa.h3_index
+        LEFT JOIN transportation_h3 t ON a.h3_index = t.h3_index
+        {tt_joins_sql}
+    """
+    con.execute(merge_sql)
+    
+    final_count = con.execute("SELECT COUNT(*) FROM earth_matrix").fetchone()[0]
+    col_count = len(con.execute("DESCRIBE earth_matrix").fetchall())
+    logger.info(f"✅ Merged: {final_count:,} hexes, {col_count} columns ({time.time()-t0:.1f}s)")
+    
+    # =========================================================================
+    # STEP 10: SAVE OUTPUT
+    # =========================================================================
+    logger.info("\n" + "=" * 80)
+    logger.info("💾 STEP 10: SAVE OUTPUT")
+    logger.info("=" * 80)
+    t0 = time.time()
+    
+    if output_name.startswith("s3://"):
+        output_path = output_name if output_name.endswith(".parquet") else f"{output_name}.parquet"
+        con.execute("SET s3_region='us-east-1';")
+        logger.info(f"   📤 Saving directly to S3: {output_path}")
+        con.execute(f"COPY earth_matrix TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        file_size = -1
+        logger.info(f"✅ Saved to S3: {output_path}")
+    elif output_name.startswith("/"):
+        output_path = output_name if output_name.endswith(".parquet") else f"{output_name}.parquet"
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        con.execute(f"COPY earth_matrix TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        file_size = Path(output_path).stat().st_size / (1024 * 1024)
+        logger.info(f"✅ Saved: {output_path} ({file_size:.1f} MB)")
+    else:
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+        output_path = str(OUTPUT_DIR / f"{output_name}.parquet")
+        con.execute(f"COPY earth_matrix TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        file_size = Path(output_path).stat().st_size / (1024 * 1024)
+        logger.info(f"✅ Saved: {output_path} ({file_size:.1f} MB)")
+    
+    # =========================================================================
+    # BUILD SUMMARY
+    # =========================================================================
+    elapsed = time.time() - start_time
+    cost = (elapsed / 3600) * 12.70
+    
+    logger.info("\n" + "=" * 80)
+    logger.info("🎉 EARTH MATRIX BUILD COMPLETE - v4.1")
+    logger.info("=" * 80)
+    logger.info(f"⏱️  Total time: {elapsed:.1f}s ({elapsed/60:.1f} min)")
+    logger.info(f"💰 Est. cost: ${cost:.2f}")
+    logger.info(f"📊 Hexes: {final_count:,}")
+    logger.info(f"📋 Columns: {col_count}")
+    logger.info(f"🏢 Buildings: {buildings_stats[1]:,}")
+    logger.info(f"📍 POIs: {places_stats[1]:,}")
+    if file_size > 0:
+        logger.info(f"💾 File size: {file_size:.1f} MB")
+    else:
+        logger.info(f"💾 Output: {output_path} (S3)")
+    logger.info("=" * 80)
+    
+    logger.info("\n📋 SCHEMA SUMMARY (v4.1 - Polygon Fill + Buffer Rings + Natural Features):")
+    logger.info(f"   • 1 H3 index (resolution {H3_RES})")
+    logger.info(f"   • 22 Top-Level POI category counts")
+    logger.info(f"   • 35 Specific POI category counts")
+    logger.info(f"   • 4 Building metrics")
+    logger.info(f"   • 20 Land Use: count + area_in_hex + avg_polygon_m2 (includes beach)")
+    logger.info(f"   • 4 Water types: count + area_in_hex + avg_polygon_m2")
+    logger.info(f"   • 3 Protected Areas: count + area_in_hex + avg_polygon_m2 (national parks)")
+    logger.info(f"   • 7 Infrastructure columns")
+    logger.info(f"   • 4 Transportation metrics")
+    logger.info(f"   • 10 Features × (walk_min_any + nearest_area + 4 size tiers) = ~60 travel time columns")
+    logger.info(f"   • 1 Coastline travel time (walk_min_to_coastline)")
+    logger.info(f"   Travel time features: park, forest, recreation_ground, farmland, vineyard,")
+    logger.info(f"                         beach, lake, coast, river, protected_area")
+    logger.info(f"   Size tiers: ≤20k m², ≥20k m², ≥2M m², ≥20M m²")
+    
+    # Write completion marker
+    try:
+        with open("/home/ubuntu/matrix-builder/COMPLETE", "w") as f:
+            f.write(f"Earth Matrix v4.0 Build Complete\n")
+            f.write(f"Time: {elapsed:.1f}s\n")
+            f.write(f"Hexes: {final_count:,}\n")
+            f.write(f"Columns: {col_count}\n")
+    except (PermissionError, FileNotFoundError):
+        pass
+    
+    return {
+        "hexes": final_count,
+        "columns": col_count,
+        "buildings": buildings_stats[1],
+        "pois": places_stats[1],
+        "file_mb": file_size,
+        "time_sec": elapsed,
+        "cost_usd": cost,
+    }
+
+
+# =============================================================================
+# CLI ENTRY POINT
+# =============================================================================
+
+if __name__ == "__main__":
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="Build Earth Matrix v4.0 - Polygon Fill + Buffer Rings",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python build_earth_matrix.py --bbox "-5.0,41.3,9.6,51.1" --output france_matrix
+  python build_earth_matrix.py --bbox "-9.5,35.8,4.3,43.8" --output "s3://bucket/spain.parquet"
+        """
+    )
+    parser.add_argument("--bbox", type=str, help="Bounding box: min_lon,min_lat,max_lon,max_lat")
+    parser.add_argument("--output", type=str, default="earth_matrix", help="Output file name")
+    
+    args = parser.parse_args()
+    
+    if args.bbox:
+        bbox = [float(x) for x in args.bbox.split(",")]
+    else:
+        bbox = [-5.0, 41.3, 9.6, 51.1]
+        logger.info(f"No bbox specified, using default (France): {bbox}")
+    
+    build_earth_matrix(bbox, args.output)

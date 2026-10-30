@@ -1,0 +1,83 @@
+--- original
++++ recovered
+@@ -387,7 +387,7 @@
+     logger.info(f"   Loaded {polygon_count:,} land use polygons")
+     
+     # Fill each polygon with H3 hexes, carrying polygon_id and computing hex count per polygon
+-        con.execute(f"""
++    con.execute(f"""
+         CREATE TABLE land_use_hex_fill AS
+         WITH polygon_hexes AS (
+             SELECT 
+@@ -682,7 +682,7 @@
+             FROM with_counts
+         """)
+         
+-            con.execute(f"""
++        con.execute(f"""
+             CREATE TABLE protected_area_h3 AS
+                 SELECT 
+                     h3_index,
+@@ -696,7 +696,7 @@
+         logger.info(f"✅ Protected Areas: {protected_stats[0]:,} hexes, {protected_stats[1]:,} polygons ({time.time()-t0:.1f}s)")
+     else:
+         # Create empty table
+-    con.execute("""
++        con.execute("""
+             CREATE TABLE protected_area_h3 AS
+             SELECT NULL::VARCHAR as h3_index, 
+                    0::BIGINT as protected_area_count,
+@@ -848,7 +848,7 @@
+                                NULL::FLOAT as nearest_{feature_name}_area_m2
+                         WHERE 1=0
+                     """)
+-                        continue
++                    continue
+                     
+                 # Create buffer rings and fill with hexes
+                 ring_queries = []
+@@ -910,7 +910,7 @@
+                 tt_count = con.execute(f"SELECT COUNT(*) FROM tt_{score_name}").fetchone()[0]
+                 travel_time_tables.append((score_name, feature_name, tt_count))
+                         
+-        except Exception as e:
++            except Exception as e:
+                 logger.warning(f"      ⚠️ Error on {score_name}: {e}")
+                 con.execute(f"""
+                     CREATE OR REPLACE TABLE tt_{score_name} AS
+@@ -934,7 +934,7 @@
+                 FROM tt_{feature_name}_{tier}
+             """)
+         
+-    con.execute(f"""
++        con.execute(f"""
+             CREATE OR REPLACE TABLE tt_{feature_name}_any AS
+             WITH all_tiers AS ({' UNION ALL '.join(union_parts)}),
+             ranked AS (
+@@ -980,7 +980,7 @@
+                     WHERE ST_Buffer(geometry::GEOMETRY, 50) IS NOT NULL
+                 """)
+                 prev_dist = 50
+-    else:
++            else:
+                 # Buffer ring around the line
+                 ring_queries.append(f"""
+                     SELECT 
+@@ -1178,7 +1178,7 @@
+         con.execute(f"COPY earth_matrix TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+         file_size = Path(output_path).stat().st_size / (1024 * 1024)
+         logger.info(f"✅ Saved: {output_path} ({file_size:.1f} MB)")
+-            else:
++    else:
+         OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+         output_path = str(OUTPUT_DIR / f"{output_name}.parquet")
+         con.execute(f"COPY earth_matrix TO '{output_path}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+@@ -1202,7 +1202,7 @@
+     logger.info(f"📍 POIs: {places_stats[1]:,}")
+     if file_size > 0:
+         logger.info(f"💾 File size: {file_size:.1f} MB")
+-        else:
++    else:
+         logger.info(f"💾 Output: {output_path} (S3)")
+     logger.info("=" * 80)
+     

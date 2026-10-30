@@ -1,0 +1,48 @@
+{
+  "build_name": "london_greater_london",
+  "timestamp": "2025-12-23T15:20:42Z",
+  "area": "Greater London",
+  "bbox": [-0.5103, 51.2867, 0.334, 51.6918],
+  "area_km2": 1572,
+  "instance_type": "m8i.96xlarge",
+  "phases": {
+    "phase1_hex_fill": {
+      "duration_seconds": 62.8,
+      "s3_download_mb": 367.2
+    },
+    "phase2_propagation": {
+      "res8": {
+        "duration_seconds": 177.8,
+        "hexes": 4094,
+        "columns": 1957,
+        "file_size_mb": 3.7
+      },
+      "res10": {
+        "duration_seconds": 726.4,
+        "hexes": 131596,
+        "columns": 1957,
+        "file_size_mb": 54
+      }
+    },
+    "phase3_aggregation": {
+      "res5": {
+        "duration_seconds": 0.4,
+        "hexes": 20,
+        "columns": 443,
+        "file_size_mb": 0.1
+      }
+    }
+  },
+  "total_duration_seconds": 803,
+  "total_duration_minutes": 13.4,
+  "performance_metrics": {
+    "res10_hexes_per_second": 181,
+    "res8_hexes_per_second": 23
+  },
+  "global_estimate": {
+    "earth_land_area_km2": 148940000,
+    "scaling_factor": 94715,
+    "estimated_global_res10_hours": 94715,
+    "notes": "Real global build would use parallelization across 384 vCPU, estimated 2-4 hours actual"
+  }
+}

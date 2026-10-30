@@ -1,0 +1,34 @@
+{
+  "test_region": {
+    "area_km2": 4.25,
+    "duration_s": 2742.0896611213684,
+    "poi_count": 0,
+    "hex_count": 0,
+    "s3_mb": 0.0
+  },
+  "extrapolation": {
+    "target_area_km2": 60000000,
+    "area_scale_factor": 14117647.05882353,
+    "effective_poi_scale": 4235294.117647058,
+    "parallelism_gain": 48.0
+  },
+  "time_estimates": {
+    "serial_global_hours": 3225987.8366133743,
+    "parallel_global_hours": 67208.07992944529,
+    "parallel_global_minutes": 4032484.7957667173
+  },
+  "cost_estimates": {
+    "compute_usd": 1365668.18,
+    "s3_egress_usd": 0.0,
+    "total_usd": 1365668.18,
+    "storage_monthly_eur": 25
+  },
+  "assumptions": {
+    "ec2_instance": "m8i.96xlarge",
+    "ec2_hourly_usd": 20.32,
+    "s3_per_tb_usd": 5.0,
+    "target_vcpus": 384,
+    "local_vcpus": 8,
+    "poi_density_adjustment": 0.3
+  }
+}

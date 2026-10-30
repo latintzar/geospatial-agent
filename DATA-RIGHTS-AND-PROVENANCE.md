@@ -1,0 +1,28 @@
+# London matrix: provenance and release conditions
+
+## Findings
+
+The London res10 Parquet recovered on the Mac contains 131,596 H3 cells × 1,956 numeric features. `backend/etl/global/build_global_matrix.py` reads Overture Maps release `2025-12-17.0` Places, Base land use and water, Buildings, and Transportation; it converts geometries and places to H3 and calculates counts, built-environment and proximity features. The London orchestration script calls its Overture loaders and produces multi-resolution matrix Parquets. This supports an **Overture-derived** provenance; the exact executed script/config and a complete per-record upstream attribution ledger for the recovered output have not been independently proven. Other tools in the broader app can call WorldPop, MapSPAM and external APIs, but we found no evidence those datasets entered this London matrix. Do not present that as proof of their absence from every historical build.
+
+The [2025-12-17 Overture release notes](https://docs.overturemaps.org/blog/2025/12/17/release-notes/) confirm that release and report refreshed OpenStreetMap (OSM) data in Base, Buildings and Transportation. Overture’s [current theme attribution](https://docs.overturemaps.org/attribution/) identifies ODbL for Base, Buildings and Transportation and lists other upstream contributors and licenses; its Places contributors have varying terms. That page has changed since the 2025 release and is not an audited 2025-12-17 attribution manifest. Preserve and verify the exact release-specific notices and source coverage before redistribution.
+
+The [ODbL text, sections 4.3–4.6](https://opendatacommons.org/licenses/odbl/1-0/) distinguishes public produced works from derivative databases: notices apply to publicly used produced works, while public use of a derivative database or its produced work can trigger share-alike and an offer of the database or compliant alteration file/method. Whether these particular aggregate H3 features and any query outputs constitute a derivative database, a produced work, or an insubstantial extraction requires a fact-specific rights assessment. Hosting scores behind an API is **not automatically an exemption**; a full score or repeatedly queryable results could be public use. MIT for Peter’s software does not change data-source obligations.
+
+The 2025 input release is no longer assumed retrievable from Overture’s buckets: its [release policy](https://docs.overturemaps.org/release-calendar/) retains releases there for at most 60 days. The policy describes Overture’s own distribution and does not itself prohibit retention or redistribution of a derived dataset. Rebuilding from a current release would change results and still requires attribution.
+
+## Concrete publication route
+
+A private review package now contains the complete 54 MB London res10 matrix with ODbL notice and contributor pointers at `../geospatial-london-data-review/`. Publicly offer the full machine-readable derived database under ODbL, link it alongside public scores, display the Overture/OSM notice, and preserve applicable upstream notices. This is the direct §4.6(a) route; attribution for the exact 2025 contributor set remains the specific outstanding provenance item because the derived file lacks upstream source metadata. See that package README.
+
+Overture’s [60-day policy](https://docs.overturemaps.org/release-calendar/) governs its own release distribution from AWS/Azure. It is not itself a 60-day legal retention requirement imposed on downstream derivatives.
+
+## Deployment decisions
+
+- **Ready for review as code:** stage this repository without the private matrix or test fixture. MIT covers Peter’s original contributions. Resolve third-party code provenance and dependency/font notices before publishing; the original code cites [DIEM](https://github.com/ftessari23/DIEM), whose repository displays no license. The staged two scoring functions have been independently rewritten from the historic mathematical equations and tested for equivalence; the Leo approximation differs from the reference implementation and must be labeled accordingly. H3 itself is [Apache 2.0](https://github.com/uber/h3), subject to its notices. The generated npm lockfile records dependencies, not a complete license inventory.
+- **Real-data demo, private:** run locally against the Mac’s recovered matrix. The reduced ten-row fixture is held separately in `/home/peter/projects/open-source-staging/geospatial-private-fixtures/`; it is not a licensed public dataset.
+- **Public readonly score demo or data download:** use the full-file ODbL offer, visible attribution and upstream notices described in the separate review package. Resolve the specific missing release-specific contributor ledger where it can be recovered; source records are absent from the derived matrix. Fresh input is optional and does not waive ODbL.
+- **Public software-only demo:** use independently authored synthetic geographic feature inputs and an appropriately licensed base map. Label the data as synthetic. This route does not publish or query the historical London matrix.
+
+## Map display
+
+`frontend/src/components/DeckGLMap.tsx` originally disabled the default attribution control. The staged recovery now enables it. [Mapbox requires map logo and text attribution](https://docs.mapbox.com/help/glossary/attribution/), and the original app must visibly present the relevant Overture/OSM and other data-source notices as well. Enabling a generic Mapbox control does not by itself verify those data notices, provider terms, accessibility or a functioning map; browser validation remains outstanding.

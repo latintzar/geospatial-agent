@@ -1,0 +1,797 @@
+[
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary"
+    ],
+    "cat": "Location",
+    "query": "Where is Shibuya in Tokyo?"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary"
+    ],
+    "cat": "Location",
+    "query": "Show boundary of Brooklyn"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Location",
+    "query": "Coffee shops in Paris"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Location",
+    "query": "Restaurants near Colosseum Rome"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Location",
+    "query": "Area of Soho London"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary"
+    ],
+    "cat": "Location",
+    "query": "Where is Wall Street?"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "places"
+    ],
+    "cat": "Location",
+    "query": "Gyms in Miami"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary"
+    ],
+    "cat": "Location",
+    "query": "Boundary of Manhattan"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "places"
+    ],
+    "cat": "Location",
+    "query": "Bars in Mexico City"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary"
+    ],
+    "cat": "Location",
+    "query": "Golden Gate Bridge location"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "weather_risk"
+    ],
+    "cat": "Climate",
+    "query": "Flood risk Miami"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Climate",
+    "query": "Temperature in Phoenix"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "elevation"
+    ],
+    "cat": "Climate",
+    "query": "Elevation of Denver"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "weather_risk"
+    ],
+    "cat": "Climate",
+    "query": "Bangkok flood risk"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Climate",
+    "query": "Weather risk Paris"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "elevation"
+    ],
+    "cat": "Climate",
+    "query": "Mexico City elevation"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "climate_profile"
+    ],
+    "cat": "Climate",
+    "query": "Dubai climate"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "visual_risk"
+    ],
+    "cat": "Climate",
+    "query": "Singapore floods"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "elevation"
+    ],
+    "cat": "Climate",
+    "query": "La Paz elevation"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "weather_risk"
+    ],
+    "cat": "Climate",
+    "query": "Houston heat waves"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "Population density Tokyo"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Population",
+    "query": "Crowded areas Manhattan"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Population",
+    "query": "Mumbai population density"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Population",
+    "query": "Mexico City population"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "London population"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "Lagos density"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "S\u00e3o Paulo population"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "Cairo population"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "population_density"
+    ],
+    "cat": "Population",
+    "query": "Berlin population"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Population",
+    "query": "Singapore density"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "available_crops"
+    ],
+    "cat": "Agriculture",
+    "query": "Cocoa production Ghana"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "available_crops",
+      "crop_production",
+      "trade_flows",
+      "top_exporters"
+    ],
+    "cat": "Agriculture",
+    "query": "Coffee Colombia"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "crop_grid",
+      "available_crops"
+    ],
+    "cat": "Agriculture",
+    "query": "Rice Vietnam"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Agriculture",
+    "query": "Crops Nigeria"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Agriculture",
+    "query": "Wheat India"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Agriculture",
+    "query": "Sugarcane Brazil"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "crop_production",
+      "available_crops",
+      "crop_grid",
+      "trade_flows",
+      "top_exporters"
+    ],
+    "cat": "Agriculture",
+    "query": "Banana Ecuador"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "crop_grid",
+      "available_crops",
+      "crop_info"
+    ],
+    "cat": "Agriculture",
+    "query": "Maize Kenya"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "available_crops",
+      "trade_flows"
+    ],
+    "cat": "Agriculture",
+    "query": "Cotton Pakistan"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "crop_grid",
+      "available_crops",
+      "crop_info",
+      "trade_flows",
+      "top_exporters"
+    ],
+    "cat": "Agriculture",
+    "query": "Soybean Argentina"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Hospitals Kenya"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Refugee camps South Sudan"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Health facilities Bangladesh"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Food markets Ethiopia"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Schools Uganda"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Water points Somalia"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "HDX",
+    "query": "Airports DRC"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "HDX",
+    "query": "Conflict Yemen"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "HDX",
+    "query": "Aid organizations Syria"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "HDX",
+    "query": "Clinics Afghanistan"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "news_narrative"
+    ],
+    "cat": "News",
+    "query": "Ukraine news"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "visual_risk",
+      "news_narrative"
+    ],
+    "cat": "News",
+    "query": "Paris protests"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "News",
+    "query": "Asia floods"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "sentiment_trends"
+    ],
+    "cat": "News",
+    "query": "Tesla sentiment"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "news_narrative"
+    ],
+    "cat": "News",
+    "query": "Middle East conflicts"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "News",
+    "query": "Climate change trends"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "News",
+    "query": "Protest photos"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "news_narrative",
+      "sentiment_trends"
+    ],
+    "cat": "News",
+    "query": "US election coverage"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "news_narrative"
+    ],
+    "cat": "News",
+    "query": "Food prices news"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "News",
+    "query": "South America disasters"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows",
+      "top_exporters",
+      "news_narrative"
+    ],
+    "cat": "Trade",
+    "query": "Ghana cocoa exports"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "US coffee imports"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "Saudi Arabia oil exports"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "Brazil soybean exports"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Trade",
+    "query": "Top cocoa exporters"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "China electronics exports"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Trade",
+    "query": "Colombia coffee routes"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Trade",
+    "query": "Wheat importers"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "top_exporters",
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "India tea trade"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "trade_flows"
+    ],
+    "cat": "Trade",
+    "query": "Thailand rubber exports"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Wealthy areas Mexico City"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Income levels Lagos"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "High income Mumbai"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Rich areas S\u00e3o Paulo"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Wealth Nairobi"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index",
+      "wealth_summary"
+    ],
+    "cat": "Wealth",
+    "query": "Spending power Jakarta"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "places"
+    ],
+    "cat": "Wealth",
+    "query": "Luxury store Manila"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Affluent Bogot\u00e1"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index",
+      "wealth_summary"
+    ],
+    "cat": "Wealth",
+    "query": "Wealth Cairo"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index"
+    ],
+    "cat": "Wealth",
+    "query": "Economic levels Bangkok"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Drive Paris to Berlin"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Routes",
+    "query": "Ghana cocoa to port"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Distance NYC to LA"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Routes",
+    "query": "Coffee farm to Bogot\u00e1"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "London to Edinburgh"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Routes",
+    "query": "Soybean to Santos port"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Mumbai to Delhi route"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Tokyo to Osaka"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Nairobi to Mombasa"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "transport_route"
+    ],
+    "cat": "Routes",
+    "query": "Mexico City to Guadalajara"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "location_boundary",
+      "wealth_index",
+      "population_density",
+      "places"
+    ],
+    "cat": "Complex",
+    "query": "Coffee shop location Lisbon"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "available_crops",
+      "crop_grid",
+      "trade_flows",
+      "top_exporters"
+    ],
+    "cat": "Complex",
+    "query": "Ghana cocoa supply chain"
+  },
+  {
+    "status": "\u26a0\ufe0f",
+    "tools": [],
+    "cat": "Complex",
+    "query": "Best clinic location Kenya"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Complex",
+    "query": "Agriculture investment Nigeria"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Complex",
+    "query": "Bangkok flood vs population"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Complex",
+    "query": "Colombia coffee near ports"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "hdx_data"
+    ],
+    "cat": "Complex",
+    "query": "Underserved health Ethiopia"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Complex",
+    "query": "Retail Mexico City"
+  },
+  {
+    "status": "\u2705",
+    "tools": [
+      "crop_production",
+      "available_crops",
+      "top_exporters"
+    ],
+    "cat": "Complex",
+    "query": "Ivory Coast chocolate supply"
+  },
+  {
+    "status": "\u23f1\ufe0fTIMEOUT",
+    "cat": "Complex",
+    "query": "Warehouse near S\u00e3o Paulo"
+  }
+]

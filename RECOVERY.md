@@ -1,0 +1,35 @@
+# Leo geospatial console — private recovery
+
+Private staging copy of `Leo/` from private `latintzar/puedo_casa` branch `leo-agentic-maps`, pinned commit `3d0512e23c5ea5c43075dbaac5b633f98f73bee1`. Includes the agent chat/map console and DIEM retail-location similarity tool. Original README describes intended capabilities, not a recent runtime acceptance.
+
+## Recovery and security
+
+111 text files recovered via the connected owner GitHub account; the first 110 matched original Git blob IDs before edits. The lockfile was recovered afterwards. Three historical Google API key literals in `backend/gemini_client.py`, `backend/utils_strategy.py`, and `backend/test_structured_output.py` were replaced with empty strings; Gitleaks with full redaction returned zero findings after this change. This is not a complete public-release security or data-rights review. Original files contain historical infrastructure references; no cloud provisioning was performed. Treat the original historical credentials as sensitive and review their provider status in the owning account.
+
+Excluded from the original tree: three binary favicon/WOFF assets (connector cannot fetch binary blobs), `.cursor/` instructions, `random stuff/` including an HTTP archive, two large benchmark metric CSVs. The application layout references Google-hosted Inter and Playfair fonts, not the excluded local WOFF files. Historical benchmark summary JSONs and example test-result JSONs are retained as evidence, not as map/retail demo data. No original screenshots or geographic parquet data occur in the pinned tree; a private ten-row sample was later recovered from the Mac as described below.
+
+## Running and limitations
+
+The original README specifies Python 3.11+, Node 18+, `pip install -r backend/requirements.txt`, `npm ci` in `frontend/`, `GOOGLE_AI_API_KEY`, `NEXT_PUBLIC_MAPBOX_TOKEN`, and FastAPI via `python -m uvicorn backend.main:app --reload --port 8000` plus frontend `npm run dev`. Install into an isolated environment after reviewing dependencies and provider accounts; this recovery performed no dependency install, backend start, browser run, or paid provider request. The current host lacks pandas, h3, duckdb and pyarrow. The historical `backend/etl/build_earth_matrix.py` had multiple indentation errors; nine indentation-only repairs are documented in `provenance/etl-indentation.patch`. All 49 Python files now pass syntax compilation. ETL runtime remains untested.
+
+The location-similarity route expects `output/earth_matrix_london/earth_matrix_maxed_res10.parquet`; this file is absent. A committed 2025-12-23 London performance summary claims a 54 MB, 131,596-hex matrix, whereas a separate 2025-12-22 Greater London benchmark records a failed final merge; these refer to separate runs and should not be conflated. Original local benchmark paths point to `/Users/peterneyra/puedo_casa/Leo/output/earth_matrix/` and `output/earth_matrix_temp/`, a concrete historical Mac recovery lead. Global build scripts and estimates exist, but global output completion is unverified. A real ten-row sample was later recovered from the Mac as described below.
+
+The original README says MIT but neither the original tree nor branch root includes the referenced LICENSE; the owner-approved MIT license has now been added. Resolve dependencies, fonts and third-party data rights before publishing. This staging copy is not a published or independently runnable release.
+
+## Mac evidence and changes since recovery
+
+The original Mac checkout was located at `/Users/peterneyra/puedo_casa/Leo`, Git HEAD `d47ce6d` dated 2025-12-24. Its `output/earth_matrix_london/earth_matrix_maxed_res10.parquet` exists (54 MB) and PyArrow metadata verifies 131,596 rows and 1,957 columns; the res8 and res5 outputs also exist. `../geospatial-private-fixtures/london-10-hexes-five-features.parquet` is ten actual rows and five selected numeric columns plus H3 ID, derived privately from that file; it is a small test fixture rather than the full dimensional search or a customer-facing dataset. Original cosine code returned ten finite scores and self similarity 100 on this reduced sample. No new model/provider calls or cloud resources were used. Review Overture-derived data rights and attribution before redistribution.
+
+The repository MIT LICENSE was added under the owner-approved license, copied from the existing Peter Neyra Home Matching release. It applies to original source; independent code, fonts, dependencies and data retain their rights. No other third-party license assessment has been completed.
+
+Nine indentation-only fixes to `backend/etl/build_earth_matrix.py` restore Python syntax; the exact original and reviewable patch are in `provenance/`. Runtime correctness has not been verified. The `.env.local` in the Mac checkout was not copied. Loading the original module on Mac triggered existing dotenv parse, import and dependency deprecation warnings. Committed benchmark JSONs are evidence; no dedicated product screenshots were found in the pinned tree.
+
+## Full London scoring verification
+
+The companion private `geospatial-retail-demo` recovery ran the original DIEM function on the complete Mac London matrix using a bounded two-pass adapter: 131,596 rows × 1,956 features in 16.63 seconds, top similarity 88.4439479497082 after 15-ring exclusion. On the first ten full-dimensional real rows, two-batch versus original whole-array scores matched exactly (maximum absolute difference 0). See `/home/peter/projects/open-source-staging/geospatial-retail-demo/README.md` for the run and reference. This is local computation evidence, not proof of a global dataset or permission to redistribute source data.
+
+See [data rights and provenance](DATA-RIGHTS-AND-PROVENANCE.md) for source licensing, ODbL public-use obligations, data retention, and the code-only release route. The staged frontend enables Mapbox’s attribution control; browser verification remains outstanding.
+
+The historic distance calibration functions in `backend/tools/tools_diem_search.py` were independently rewritten from the Leo equations after checking the cited DIEM repository. The reference repository has no visible license; its Python implementation uses an empirical reference-distance center and variance, whereas Leo uses an approximate analytic center and spread and maps it through a logistic function. This is the **Leo approximation**, not a faithful implementation of published DIEM. The rewrite matched the original scores exactly on ten actual London rows × 1,956 features (max absolute difference 0), and on four synthetic cases including 1,956 dimensions. It retains the function signatures for the private bounded adapter. [Tessari et al.](https://arxiv.org/abs/2407.08623) describe the DIEM metric.
+
+A complete separately staged London ODbL data package is at `../geospatial-london-data-review/` with a machine-readable matrix, provenance, source notices, and SHA-256 verified against the Mac original. Overture’s 60-day policy concerns availability of its own source releases; it is not a downstream retention deadline.
