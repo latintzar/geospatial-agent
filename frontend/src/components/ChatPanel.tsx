@@ -651,7 +651,7 @@ export default function ChatPanel({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Try the supported example..."
+              placeholder="Ask about a place"
               rows={1}
               className="w-full px-4 py-3 pr-24 bg-transparent text-white placeholder-stone-600 focus:outline-none resize-none text-sm"
             />

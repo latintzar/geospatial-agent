@@ -220,7 +220,7 @@ export default function LeoPage() {
             onKeyDown={(e) => e.key === 'Enter' && setIsDrawerOpen(true)}
           >
             <Brain className={`w-3.5 h-3.5 ${isProcessing ? 'animate-pulse' : ''}`} />
-            <span>{isProcessing ? 'Processing...' : 'View Process'}</span>
+            <span>{isProcessing ? 'Processing...' : 'Show process'}</span>
             {isProcessing && (
               <div className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-pulse" />
             )}
@@ -238,7 +238,7 @@ export default function LeoPage() {
       </header>
 
       {/* Main Content */}
-      <div className="px-4 py-2 text-xs text-emerald-200 bg-emerald-950">Authored example · synthetic features · retained scorer result · no model call</div>
+      <div className="px-4 py-2 text-xs text-emerald-200 bg-emerald-950">Example data</div>
       <main className="flex-1 flex overflow-hidden">
         {/* Left Panel - switches based on mode */}
         <div className="w-[45%] sm:w-[400px] flex-shrink-0 border-r border-stone-800/50">
