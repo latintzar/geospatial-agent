@@ -4,4 +4,4 @@ Set `NEXT_PUBLIC_EXAMPLE_MODE=true` at build time to run the console without a m
 
 The sample result is `src/lib/example-results.json` and comes from the scorer in `../retail-demo` using its `synthetic-example.parquet`. It does not contain the private London matrix. To run the original backend modes, configure your own model and map providers and validate the relevant tools; see the root README and recovery notes.
 
-The deployment build uses asset prefix `/apps/geospatial-agent` and expects a reverse proxy to strip that prefix before forwarding to Next. For another route, adjust `assetPrefix` in `next.config.mjs`.
+Local development and production builds serve at the root. The Atelier deployment sets `NEXT_PUBLIC_ASSET_PREFIX=/apps/geospatial-agent` at build time and uses a reverse proxy that strips that prefix before forwarding to Next. Choose the prefix for your own deployment through this build input.

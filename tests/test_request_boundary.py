@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from backend.request_boundary import Policy, SearchRequest, DiemRequest, mount_boundary
+from backend.request_boundary import Policy, SearchRequest, DiemRequest, mount_boundary, denial
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from pydantic import ValidationError
@@ -123,3 +123,8 @@ def test_public_cors_configuration_uses_exact_origins(monkeypatch):
     monkeypatch.setenv("GEOSPATIAL_ALLOWED_ORIGINS", "*")
     with pytest.raises(ValueError):
         Policy.from_env()
+
+
+def test_non_ascii_authorization_is_rejected_cleanly():
+    policy = Policy(("https://maps.example",), True, "x" * 40)
+    assert denial(policy, "198.51.100.2", {"authorization": "Bearer é"})[0] == 401

@@ -74,7 +74,8 @@ def denial(policy, host, headers):
     if not policy.public and not local:
         return 403, "This API accepts local requests."
     if policy.token and not hmac.compare_digest(
-        headers.get("authorization", ""), "Bearer " + policy.token
+        headers.get("authorization", "").encode("utf-8"),
+        ("Bearer " + policy.token).encode("utf-8"),
     ):
         return 401, "Provide the configured API authorization."
     return None
