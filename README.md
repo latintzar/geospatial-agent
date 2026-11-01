@@ -14,7 +14,7 @@ The recovered Next.js and deck.gl workspace combines chat, map layers, process v
 
 ## Run the example
 
-Requires Node.js 18.17 or newer and npm.
+Requires Node.js 22 or newer and npm.
 
 ```sh
 git clone https://github.com/latintzar/geospatial-agent.git
@@ -23,7 +23,7 @@ npm ci
 NEXT_PUBLIC_EXAMPLE_MODE=true npm run dev
 ```
 
-Open http://localhost:3000. The example uses MapLibre and OpenStreetMap tiles and makes no model request. To host it under another route, adjust `assetPrefix` in `frontend/next.config.mjs`; `npm run dev` serves the local app at the root. See [example mode](frontend/EXAMPLE-MODE.md).
+Open http://localhost:3000. The example uses MapLibre and OpenStreetMap tiles and makes no model request. Local development and production builds serve the app at the root. For a prefixed deployment, set `NEXT_PUBLIC_ASSET_PREFIX` at build time. See [example mode](frontend/EXAMPLE-MODE.md).
 
 ## Live configuration and status
 
@@ -36,3 +36,6 @@ The original backend and tool adapters are retained for further development; liv
 ## Source and agent instructions
 
 The source was recovered from `latintzar/puedo_casa`, branch `leo-agentic-maps`, commit `3d0512e23c5ea5c43075dbaac5b633f98f73bee1`, under `Leo/`. Preserve the distinction between authored examples and live provider output; use operator-owned credentials and keep synthetic and privately held datasets clearly identified. See [recovery](RECOVERY.md) and [data provenance](DATA-RIGHTS-AND-PROVENANCE.md) before changing data handling.
+
+
+The API is local-first. [Recipient access and service setup](docs/AGENT-SETUP.md#api-access-boundary) describes exact frontend origins and private authorization for network deployments. The released map example runs with its included generated data.

@@ -4,7 +4,7 @@ Geospatial Agent combines a chat interface, geographic layers and Python map too
 
 ## Run the map example
 
-Use Node 18.17+ and npm:
+Use Node 22+ and npm:
 
 ```sh
 cd frontend
@@ -50,3 +50,14 @@ Run the frontend against that service with example mode disabled. Verify one sel
 The public example supplies a small generated feature dataset. The historical full London matrix is separately recorded evidence, with distribution rights and provenance documented in [data rights](../DATA-RIGHTS-AND-PROVENANCE.md). Supply the actual parquet inputs or owned cloud dataset for the live search path. Global matrix completion remains unverified in the project record.
 
 [Project overview](../README.md) · [Backend agent](../backend/agent.py) · [Gemini client](../backend/gemini_client.py) · [MIT licence](../LICENSE)
+
+
+## API access boundary
+
+The backend accepts local requests by default, with exact localhost frontend origins. Requests from another origin are rejected before search/provider work. Messages are bounded to 4,096 characters; coordinates must be finite and within latitude/longitude ranges; DIEM returns at most 1,000 matches. Request bodies are limited to 16 KiB.
+
+For an authenticated network deployment, set `GEOSPATIAL_PUBLIC_API=true`, a private `GEOSPATIAL_API_TOKEN` of at least 32 characters, and exact comma-separated `GEOSPATIAL_ALLOWED_ORIGINS`. The API then requires `Authorization: Bearer <recipient-token>`. Keep that token in your private server/proxy or agent configuration. Browser builds receive public configuration only. Choose an authenticated frontend/reverse-proxy arrangement when commissioning a multi-user deployment; the included localhost workflow remains the first result.
+
+The frontend uses pinned Fontsource Inter and Playfair Display assets through `next/font/local`, so production builds use the installed font files. Their upstream licences are SIL Open Font License 1.1.
+
+Validation: `python3 -m pytest -q tests/test_request_boundary.py` checks origin, local/network access, bearer authorization, input bounds and complete SSE delivery using a local fixture, with provider execution replaced by the fixture.

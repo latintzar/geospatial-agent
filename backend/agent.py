@@ -25,7 +25,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
-from pydantic import BaseModel
+from backend.request_boundary import Policy, SearchRequest, DiemRequest, mount_boundary
 
 # Load env
 load_dotenv(Path(__file__).parent.parent / ".env.local")
@@ -263,13 +263,14 @@ class CascadeAgent:
 # =============================================================================
 
 app = FastAPI(title="Leo Cascade Agent", version="3.0")
+_policy=Policy.from_env()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=list(_policy.origins),
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # Singleton agent
@@ -282,15 +283,7 @@ def get_agent():
     return _agent
 
 
-class SearchRequest(BaseModel):
-    message: str
-    model: str = "gemini-3-flash-preview"
-
-
-class DiemRequest(BaseModel):
-    lat: float
-    lng: float
-    top_k: int = 1000
+mount_boundary(app,_policy)
 
 
 @app.post("/stream-chat")
@@ -298,7 +291,7 @@ async def stream_chat(request: SearchRequest):
     """Stream cascade search results via SSE."""
     
     agent = get_agent()
-    logger.info(f"🔬 Cascade search: {request.message[:60]}...")
+    logger.info("Cascade search requested")
     
     async def event_generator():
         try:
@@ -332,7 +325,7 @@ async def stream_diem(request: DiemRequest):
     globally that are most similar to the reference location
     across ALL feature dimensions (~1,956 columns).
     """
-    logger.info(f"🎯 DIEM search: lat={request.lat}, lng={request.lng}, top_k={request.top_k}")
+    logger.info("DIEM search requested")
     
     async def event_generator():
         try:
