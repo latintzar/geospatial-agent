@@ -31,6 +31,8 @@ The original backend and tool adapters are retained for further development; liv
 
 [Retail Location Similarity](https://github.com/latintzar/retail-location-similarity) is the standalone scoring example. Original source is MIT licensed; third-party code, services and data retain their own licenses.
 
+[Set up with your agent](docs/AGENT-SETUP.md).
+
 ## Source and agent instructions
 
 The source was recovered from `latintzar/puedo_casa`, branch `leo-agentic-maps`, commit `3d0512e23c5ea5c43075dbaac5b633f98f73bee1`, under `Leo/`. Preserve the distinction between authored examples and live provider output; use operator-owned credentials and keep synthetic and privately held datasets clearly identified. See [recovery](RECOVERY.md) and [data provenance](DATA-RIGHTS-AND-PROVENANCE.md) before changing data handling.
