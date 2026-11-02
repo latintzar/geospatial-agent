@@ -25,6 +25,8 @@ NEXT_PUBLIC_EXAMPLE_MODE=true npm run dev
 
 Open http://localhost:3000. The example uses MapLibre and OpenStreetMap tiles and makes no model request. Local development and production builds serve the app at the root. For a prefixed deployment, set `NEXT_PUBLIC_ASSET_PREFIX` at build time. See [example mode](frontend/EXAMPLE-MODE.md).
 
+On phones, the map fills the viewport and Ask about a place opens the full-screen chat. Desktop keeps the chat/map split. [Mobile interaction guide](docs/MOBILE-UX.md).
+
 ## Live configuration and status
 
 The original backend and tool adapters are retained for further development; live operation requires your own model and mapping accounts, data, and validation of each tool. See [environment template](env.template), [recovery notes](RECOVERY.md) and [original technical README](docs/original-README.md). The public example uses 90 synthetic feature records. A separate private historical London matrix was verified at 131,596 locations and 1,956 numeric features; global matrix completion has not been verified.

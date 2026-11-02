@@ -498,7 +498,7 @@ export default function MapPanel({
 
       {/* Layer Panel */}
       {isPanelOpen && (
-        <div className="absolute top-16 left-4 glass-panel p-3 w-56">
+        <div className="geo-layer-panel absolute top-16 left-4 glass-panel p-3 w-56">
           <div className="flex items-center justify-between mb-3 pb-2 border-b border-stone-800">
             <span className="text-sm font-medium text-white">Layers</span>
             <span className="text-xs text-stone-500">{visibleCount}/{layers.length}</span>

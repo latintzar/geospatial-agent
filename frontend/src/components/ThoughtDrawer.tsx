@@ -61,6 +61,13 @@ export const ThoughtDrawer = ({
   isThinking,
   currentMessage,
 }: ThoughtDrawerProps) => {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    if (isOpen && !dialog.open) dialog.showModal();
+    else if (!isOpen && dialog.open) dialog.close();
+  }, [isOpen, isThinking]);
   const scrollRef = useRef<HTMLDivElement>(null);
   const prevLogLength = useRef(thinkingLog.length);
 
@@ -77,23 +84,7 @@ export const ThoughtDrawer = ({
 
   return (
     <>
-      {/* Backdrop */}
-      <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity duration-300 ${
-          isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
-        onClick={onClose}
-        aria-hidden="true"
-      />
-      
-      {/* Drawer */}
-      <div 
-        className={`fixed right-0 top-0 h-full w-[380px] bg-[#0a0a0a] border-l border-stone-800/50 z-50 flex flex-col transform transition-transform duration-300 ease-out ${
-          isOpen ? 'translate-x-0' : 'translate-x-full'
-        }`}
-        role="dialog"
-        aria-label="Agent Thinking Process"
-      >
+      <dialog ref={dialogRef} className="geo-thought-drawer" aria-label="Agent process" onClose={onClose}>
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-stone-800/50">
           <div className="flex items-center gap-2">
@@ -199,7 +190,7 @@ export const ThoughtDrawer = ({
             <span>SSE Streaming</span>
           </div>
         </div>
-      </div>
+      </dialog>
     </>
   );
 };

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import ChatPanel from '@/components/ChatPanel';
 import DiemPanel from '@/components/DiemPanel';
@@ -10,7 +10,7 @@ import PlanCard from '@/components/PlanCard';
 import { useLeoClient } from '@/hooks/useLeoClient';
 import { useDiemSearch } from '@/hooks/useDiemSearch';
 import type { StreamingState } from '@/lib/types';
-import { Brain, Database, Globe } from 'lucide-react';
+import { Brain, Database, Globe, MessageSquare, Map as MapIcon } from 'lucide-react';
 
 // Dynamic import for MapPanel to avoid SSR issues with Mapbox
 const MapPanel = dynamic(() => import('@/components/MapPanel'), {
@@ -33,6 +33,43 @@ type SearchMode = 'cascade' | 'diem';
 // =============================================================================
 
 export default function LeoPage() {
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const chatDialogRef = useRef<HTMLDialogElement>(null);
+  const [isMobileChatOpen, setIsMobileChatOpen] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 880px)');
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      workspaceRef.current?.style.setProperty('--geo-visual-height', `${viewport?.height || window.innerHeight}px`);
+      workspaceRef.current?.style.setProperty('--geo-visual-top', `${Math.max(0, viewport?.offsetTop || 0)}px`);
+    };
+    syncViewport();
+    viewport?.addEventListener('resize', syncViewport);
+    viewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
+    const layout = () => {
+      const dialog = chatDialogRef.current;
+      if (!dialog) return;
+      if (dialog.open) dialog.close();
+      setIsMobileChatOpen(false);
+      if (!media.matches) dialog.show();
+    };
+    layout();
+    media.addEventListener('change', layout);
+    return () => {
+      media.removeEventListener('change', layout);
+      viewport?.removeEventListener('resize', syncViewport);
+      viewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+    };
+  }, []);
+  const openMobileChat = () => {
+    const dialog = chatDialogRef.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    setIsMobileChatOpen(true);
+  };
+  const closeMobileChat = () => chatDialogRef.current?.close();
+
   // Search mode state
   const [searchMode, setSearchMode] = useState<SearchMode>('cascade');
   
@@ -156,9 +193,9 @@ export default function LeoPage() {
   // RENDER
   // ==========================================================================
   return (
-    <div className="w-screen flex flex-col bg-background overflow-hidden" style={{ height: "calc(100dvh - var(--atelier-nav-height, 0px))" }}>
+    <div ref={workspaceRef} className="geo-workspace w-screen flex flex-col bg-background overflow-hidden" style={{ height: "calc(100dvh - var(--atelier-nav-height, 0px))" }}>
       {/* Header */}
-      <header className="h-12 px-5 flex items-center justify-between border-b border-stone-800/50 bg-background z-10">
+      <header className="geo-header h-12 px-5 flex items-center justify-between border-b border-stone-800/50 bg-background z-10">
         <a 
           href="https://atelierneyra.com" 
           target="_blank" 
@@ -238,10 +275,17 @@ export default function LeoPage() {
       </header>
 
       {/* Main Content */}
-      <div className="px-4 py-2 text-xs text-emerald-200 bg-emerald-950">Example data</div>
-      <main className="flex-1 flex overflow-hidden">
+      <div className="geo-example-label px-4 py-2 text-xs text-emerald-200 bg-emerald-950">Example data</div>
+      <div className="geo-mobile-tools">
+        <button onClick={openMobileChat} aria-haspopup="dialog" aria-controls="geo-chat" aria-expanded={isMobileChatOpen}><MessageSquare size={18} /><span>Ask about a place</span></button>
+        <button onClick={() => setIsDrawerOpen(true)} aria-label="Show process"><Brain size={18} /></button>
+      </div>
+      <main className="geo-main flex-1 flex overflow-hidden">
         {/* Left Panel - switches based on mode */}
-        <div className="w-[45%] sm:w-[400px] flex-shrink-0 border-r border-stone-800/50">
+        <dialog id="geo-chat" ref={chatDialogRef} className="geo-chat" aria-label="Ask about a place" onClose={() => setIsMobileChatOpen(false)}>
+          <div className="geo-chat-head"><h2>Ask about a place</h2><button onClick={closeMobileChat} aria-label="Return to map"><MapIcon size={18} /><span>Map</span></button></div>
+          {process.env.NEXT_PUBLIC_EXAMPLE_MODE !== 'true' && <div className="geo-chat-mode"><label htmlFor="geo-mobile-mode">Search mode</label><select id="geo-mobile-mode" value={searchMode} onChange={e => setSearchMode(e.target.value as SearchMode)}><option value="cascade">Chat</option><option value="diem">Location search</option></select></div>}
+          <div className="geo-chat-content">
           {searchMode === 'cascade' ? (
             <ChatPanel
               messages={messages}
@@ -262,10 +306,11 @@ export default function LeoPage() {
               selectedLocation={diemSelectedLocation}
             />
           )}
-        </div>
+          </div>
+        </dialog>
 
         {/* Map Panel */}
-        <div className="flex-1">
+        <div className="geo-map flex-1">
           <MapPanel
             layers={mapLayers}
             viewState={viewState}

@@ -450,7 +450,7 @@ export default function ChatPanel({
       <div className="flex-1 overflow-y-auto">
         {/* Empty State */}
         {messages.length === 0 && !loading && (
-          <div className="h-full flex items-center justify-center p-8">
+          <div className="geo-chat-empty h-full flex items-center justify-center p-8">
             <div className="text-center max-w-md">
               <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 flex items-center justify-center">
                 <span className="text-3xl">🌍</span>
@@ -628,7 +628,7 @@ export default function ChatPanel({
         <div className="relative max-w-3xl mx-auto">
           {/* Suggestion Chips - shown when no messages */}
           {messages.length === 0 && (
-            <div className="flex flex-wrap gap-2 mb-3">
+            <div className="geo-chat-suggestions flex flex-wrap gap-2 mb-3">
               <button
                 onClick={() => onSendMessage("Find locations similar to Covent Garden")}
                 className="px-3 py-1.5 text-xs bg-stone-800/50 border border-stone-700/50 text-stone-400 rounded-lg hover:bg-stone-700/50 hover:text-white hover:border-stone-600 transition-all"
@@ -652,8 +652,9 @@ export default function ChatPanel({
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Ask about a place"
+              aria-label="Ask about a place"
               rows={1}
-              className="w-full px-4 py-3 pr-24 bg-transparent text-white placeholder-stone-600 focus:outline-none resize-none text-sm"
+              className="w-full px-4 py-3 pr-4 bg-transparent text-white placeholder-stone-400 focus:outline-none resize-none text-sm"
             />
             
             {/* Bottom Bar with Model Selector and Send */}
