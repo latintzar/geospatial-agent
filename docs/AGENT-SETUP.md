@@ -45,9 +45,15 @@ With your selected data and provider configured, the retained entrypoint is:
 
 Run the frontend against that service with example mode disabled. Verify one selected tool from query to response and map layer before expanding the integration. Provider requests and cloud queries use your accounts.
 
+## Local data and cloud execution
+
+The map example runs with retained results and local computation. Use the separate [Retail Location Similarity](https://github.com/latintzar/retail-location-similarity) CLI and original London matrix for full-matrix local comparisons.
+
+Historical provisioning helpers print a local plan. Their complete source is preserved as [historical cloud scripts](historical/cloud-build-scripts.md); the ETL and propagation algorithms remain in `backend/etl/`. [Cloud accounts and transfer limits](CLOUD-COSTS.md) covers owner-selected accounts, query scan controls, transfer allowances and storage retention before connected execution.
+
 ## Dataset and result status
 
-The public example supplies a small generated feature dataset. The historical full London matrix is separately recorded evidence, with distribution rights and provenance documented in [data rights](../DATA-RIGHTS-AND-PROVENANCE.md). Supply the actual parquet inputs or owned cloud dataset for the live search path. Global matrix completion remains unverified in the project record.
+The public example supplies a small generated feature dataset. The original full London matrix is published through Retail Location Similarity, with its distribution rights and provenance recorded in that project and [data rights](../DATA-RIGHTS-AND-PROVENANCE.md). Supply the actual parquet inputs or owned cloud dataset for the live search path. Global matrix completion remains unverified in the project record.
 
 [Project overview](../README.md) · [Backend agent](../backend/agent.py) · [Gemini client](../backend/gemini_client.py) · [MIT licence](../LICENSE)
 

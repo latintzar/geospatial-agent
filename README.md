@@ -37,6 +37,12 @@ NEXT_PUBLIC_EXAMPLE_MODE=true npm run dev
 
 Open **http://localhost:3000**. MapLibre and OpenStreetMap provide the example basemap. Local builds serve at the root; set `NEXT_PUBLIC_ASSET_PREFIX` at build time for a mounted path. [Example mode](frontend/EXAMPLE-MODE.md) covers the data and deployment contract.
 
+## Local data and historical global builds
+
+The example uses retained results and local computation. [Retail Location Similarity](https://github.com/latintzar/retail-location-similarity) supplies the original London matrix and a local comparison CLI. The retained global ETL remains available for development; its cloud launch entries print a local plan, with the complete original provisioning code preserved as historical documentation.
+
+[Cloud accounts and transfer limits](docs/CLOUD-COSTS.md) explains the explicit account, bucket, region and per-run allowances for an owned WorldPop transfer. Global output completion remains unverified.
+
 ## Build with it
 
 - [Product tour](docs/product-tour.md): example journey, product areas and source map.
@@ -47,6 +53,6 @@ Open **http://localhost:3000**. MapLibre and OpenStreetMap provide the example b
 
 The original backend and tool adapters are retained for further development. Configure and test each chosen tool with your own model, mapping and data accounts. The local-first API’s [authenticated network configuration](docs/AGENT-SETUP.md#api-access-boundary) keeps the private token on your server or proxy.
 
-A separate historical London matrix was privately verified at 131,596 locations and 1,956 numeric features. The public example supplies generated features; global matrix completion remains unverified. Source authority is `latintzar/puedo_casa`, `leo-agentic-maps`, commit `3d0512e23c5ea5c43075dbaac5b633f98f73bee1`, under `Leo/`. Original code is [MIT licensed](LICENSE); third-party software, services and data retain their own terms.
+The original London matrix contains 131,596 locations and 1,956 numeric features and is available through Retail Location Similarity. The map example supplies generated features; global matrix completion remains unverified. Source authority is `latintzar/puedo_casa`, `leo-agentic-maps`, commit `3d0512e23c5ea5c43075dbaac5b633f98f73bee1`, under `Leo/`. Original code is [MIT licensed](LICENSE); third-party software, services and data retain their own terms.
 
 [made by atelier neyra](https://atelierneyra.com)

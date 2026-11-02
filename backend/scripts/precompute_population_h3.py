@@ -43,6 +43,20 @@ Requirements:
     pip install rasterio h3 pandas pyarrow boto3 tqdm
 """
 
+# CLI admission runs before scientific/provider imports.
+if __name__ == "__main__":
+    import sys as _cli_sys
+    if "--upload" in _cli_sys.argv[1:]:
+        if __package__:
+            from .population_upload import main as _upload_main
+        else:
+            from population_upload import main as _upload_main
+        raise SystemExit(_upload_main(_cli_sys.argv[1:]))
+    if "--execute" not in _cli_sys.argv[1:] or "--dry-run" in _cli_sys.argv[1:]:
+        print("Population precomputation: local plan only. See docs/CLOUD-COSTS.md.")
+        print("Use --execute with a selected tile or region to run the retained computation.")
+        raise SystemExit(0)
+
 import os
 import sys
 import argparse
@@ -76,7 +90,7 @@ GHS_TILES_BASE = (
 
 # Output configuration
 OUTPUT_DIR = Path("./data/population_h3")
-S3_BUCKET = "puedo-casa-population"
+S3_BUCKET = ""
 S3_PREFIX = "h3_res8"
 
 # H3 resolution options:
@@ -336,23 +350,11 @@ def process_all_tiles(cache_dir: Path, output_dir: Path, skip_existing: bool = T
 
 def upload_to_s3(local_dir: Path, bucket: str, prefix: str):
     """Upload processed parquet files to S3."""
-    import boto3
-    
-    logger.info(f"Uploading to s3://{bucket}/{prefix}/...")
-    
-    s3 = boto3.client('s3')
-    
-    parquet_files = list(local_dir.glob("**/*.parquet"))
-    logger.info(f"Found {len(parquet_files)} parquet files")
-    
-    for pq_file in tqdm(parquet_files, desc="Uploading"):
-        # Preserve partition structure
-        relative_path = pq_file.relative_to(local_dir)
-        s3_key = f"{prefix}/{relative_path}"
-        
-        s3.upload_file(str(pq_file), bucket, s3_key)
-    
-    logger.info(f"✅ Uploaded to s3://{bucket}/{prefix}/")
+    if __package__:
+        from .population_upload import upload_directory
+    else:
+        from population_upload import upload_directory
+    return upload_directory(local_dir, bucket=bucket, prefix=prefix)
 
 
 # =============================================================================
@@ -380,6 +382,8 @@ def query_population_h3_s3(
     Returns:
         List of dicts [{'hex': '...', 'count': 1234}, ...]
     """
+    if not bucket:
+        raise ValueError('Supply the selected owned population bucket explicitly.')
     import duckdb
     
     west, south, east, north = bbox
@@ -416,6 +420,7 @@ def main():
     parser.add_argument('--output', type=str, default=str(OUTPUT_DIR), help="Output directory")
     parser.add_argument('--cache', type=str, default='/tmp/ghs_cache', help="Tile cache directory")
     
+    parser.add_argument('--execute', action='store_true', help='Run the retained computation for the selected tile or region')
     args = parser.parse_args()
     
     output_dir = Path(args.output)

@@ -59,6 +59,14 @@ import logging
 import multiprocessing as mp
 from multiprocessing import shared_memory
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
+# A default invocation describes the retained build; execution is explicit.
+if __name__ == "__main__":
+    import sys as _cli_sys
+    if "--execute" not in _cli_sys.argv[1:] or "--dry-run" in _cli_sys.argv[1:]:
+        print("Global matrix build: local plan only. See docs/CLOUD-COSTS.md.")
+        print("Use --execute with your selected dataset, compute and limits to run the retained ETL.")
+        raise SystemExit(0)
+
 import os
 import subprocess
 import sys
@@ -1451,6 +1459,7 @@ def main():
         '--threads-per-chunk', type=int, default=None,
         help=f'Threads per chunk for category propagation (default: {THREADS_PER_CHUNK})'
     )
+    parser.add_argument('--execute', action='store_true', help='Run the retained ETL using your selected compute and data')
     args = parser.parse_args()
     
     # Determine if we're in test mode
