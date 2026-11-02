@@ -39,3 +39,9 @@ jobs:
             cp -r frontend/public frontend/.next/standalone/public
           fi
       - run: python3 tests/browser_mobile.py --serve-build frontend/.next/standalone
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: example-mobile-geometry
+          path: /tmp/geospatial-mobile-proof
+          retention-days: 7

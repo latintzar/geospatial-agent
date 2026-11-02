@@ -33,7 +33,13 @@ try:
    page.wait_for_selector('.geo-map .maplibregl-canvas',state='attached' if opts.narrow_map_regression else 'visible',timeout=60000);page.wait_for_timeout(1500)
   def bounds(selector):return page.locator(selector).bounding_box()
   def fullscreen(selector,w,h):
-   page.wait_for_function("([selector,w,h])=>{const e=document.querySelector(selector);if(!e)return false;const r=e.getBoundingClientRect();return Math.abs(r.x)<1&&Math.abs(r.y)<1&&Math.abs(r.width-w)<1&&Math.abs(r.height-h)<1}",arg=[selector,w,h],timeout=5000,polling=50);b=bounds(selector);return b and abs(b['x'])<1 and abs(b['y'])<1 and abs(b['width']-w)<1 and abs(b['height']-h)<1
+   try:
+    page.wait_for_function("([selector,w,h])=>{const e=document.querySelector(selector);if(!e)return false;const r=e.getBoundingClientRect();return Math.abs(r.x)<1&&Math.abs(r.y)<1&&Math.abs(r.width-w)<1&&Math.abs(r.height-h)<1}",arg=[selector,w,h],timeout=5000,polling=50)
+   except Exception:
+    # Capture the actual matched element and viewport before changing a strict geometry assertion.
+    info=page.evaluate("selector=>{const e=document.querySelector(selector),s=e&&getComputedStyle(e),r=e&&e.getBoundingClientRect();return {selector,id:e?.id,label:e?.getAttribute('aria-label'),open:e?.open,modal:e?.matches(':modal'),rect:r&&{x:r.x,y:r.y,width:r.width,height:r.height},active:document.activeElement?.outerHTML.slice(0,200),workspaceStyle:document.querySelector('.geo-workspace')?.getAttribute('style'),navHeight:getComputedStyle(document.documentElement).getPropertyValue('--atelier-nav-height'),viewport:{width:innerWidth,height:innerHeight,visualWidth:visualViewport?.width,visualHeight:visualViewport?.height,top:visualViewport?.offsetTop,scale:visualViewport?.scale},css:s&&{top:s.top,height:s.height,width:s.width,display:s.display,position:s.position,margin:s.margin,maxHeight:s.maxHeight}}}",selector)
+    (opts.out_dir/'fullscreen-failure.json').write_text(json.dumps(info,indent=2)+'\n');print('FULLSCREEN_GEOMETRY_DIAGNOSTIC',json.dumps(info),flush=True);page.screenshot(path=str(opts.out_dir/'fullscreen-failure.png'));raise
+   b=bounds(selector);return b and abs(b['x'])<1 and abs(b['y'])<1 and abs(b['width']-w)<1 and abs(b['height']-h)<1
   def map_fits(name,w,h):
    b=bounds('.geo-map');nav=page.evaluate("parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--atelier-nav-height'))||0");r.setdefault('geometry',{})[name]={'map':b,'native_nav_height':nav}
    check(name+'_map_full_viewport',b and abs(b['x'])<1 and abs(b['width']-w)<1 and abs(b['y']-nav)<1 and abs(b['height']-(h-nav))<1);check(name+'_no_overflow',page.evaluate('document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight'))
